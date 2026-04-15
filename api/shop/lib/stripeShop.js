@@ -218,14 +218,32 @@ async function resolveCheckoutLineItems(mergedItems) {
 }
 
 function getBaseUrl(req) {
-  const explicitBaseUrl = process.env.PUBLIC_SITE_URL;
+  const explicitBaseUrl = process.env.PUBLIC_SITE_URL?.trim();
   if (explicitBaseUrl) {
-    return explicitBaseUrl.replace(/\/$/, "");
+    try {
+      const parsed = new URL(explicitBaseUrl);
+      const hostname = parsed.hostname.toLowerCase();
+      const isLoopbackHost =
+        hostname === "localhost" ||
+        hostname === "127.0.0.1" ||
+        hostname === "::1";
+
+      // Ignore accidental localhost config in Vercel production/preview.
+      if (!isLoopbackHost || !process.env.VERCEL) {
+        return `${parsed.protocol}//${parsed.host}`;
+      }
+    } catch {
+      // Fall back to host detection below if PUBLIC_SITE_URL is malformed.
+    }
   }
 
+  const forwardedHost = req.headers["x-forwarded-host"];
   const forwardedProto = req.headers["x-forwarded-proto"];
   const protocol = typeof forwardedProto === "string" ? forwardedProto : "https";
-  const host = req.headers.host;
+  const host =
+    (typeof forwardedHost === "string" && forwardedHost) ||
+    process.env.VERCEL_URL ||
+    req.headers.host;
 
   if (!host || typeof host !== "string") {
     throw new Error("Unable to determine site host for checkout redirects.");
