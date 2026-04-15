@@ -1,13 +1,8 @@
-import HeroCarousel from '../components/HeroCarousel.jsx'
-import InstagramFeed from '../components/InstagramFeed.jsx'
+import HeroCarousel from "../components/HeroCarousel.jsx";
+import InstagramFeed from "../components/InstagramFeed.jsx";
+import { handleAppLinkClick } from "../lib/navigation.js";
 
 function HomeView() {
-  const handleShopClick = (event) => {
-    event.preventDefault()
-    window.history.pushState({}, '', '/shop')
-    window.dispatchEvent(new Event('app:navigate'))
-  }
-
   return (
     <section id="home" className="view view--home">
       <div className="hero">
@@ -24,7 +19,7 @@ function HomeView() {
           <a
             className="hero__cta hero__cta--copy"
             href="/shop"
-            onClick={handleShopClick}
+            onClick={(event) => handleAppLinkClick(event, "/shop")}
           >
             Shop now
           </a>
@@ -35,7 +30,7 @@ function HomeView() {
 
       <InstagramFeed />
     </section>
-  )
+  );
 }
 
-export default HomeView
+export default HomeView;
