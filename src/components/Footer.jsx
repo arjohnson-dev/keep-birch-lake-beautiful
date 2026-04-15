@@ -1,9 +1,13 @@
 function Footer() {
+  const currentYear = new Date().getFullYear()
+
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
-        <p>Keep Birch Lake Beautiful</p>
-        <p>Community-minded goods, stories, and stewardship from the shoreline.</p>
+        <p>&copy; {currentYear} Keep Birch Lake Beautiful</p>
+        <a href="https://arjohnson.dev/" target="_blank" rel="noreferrer">
+          Developed by arjohnson.dev
+        </a>
       </div>
     </footer>
   )

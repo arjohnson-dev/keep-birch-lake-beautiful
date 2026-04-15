@@ -1,6 +1,13 @@
 import HeroCarousel from '../components/HeroCarousel.jsx'
+import InstagramFeed from '../components/InstagramFeed.jsx'
 
 function HomeView() {
+  const handleShopClick = (event) => {
+    event.preventDefault()
+    window.history.pushState({}, '', '/shop')
+    window.dispatchEvent(new Event('app:navigate'))
+  }
+
   return (
     <section id="home" className="view view--home">
       <div className="hero">
@@ -14,13 +21,19 @@ function HomeView() {
             Twenty percent of all proceeds continue to go directly to that same
             fund.
           </p>
-          <a className="hero__cta hero__cta--copy" href="#shop">
+          <a
+            className="hero__cta hero__cta--copy"
+            href="/shop"
+            onClick={handleShopClick}
+          >
             Shop now
           </a>
         </div>
 
         <HeroCarousel />
       </div>
+
+      <InstagramFeed />
     </section>
   )
 }
