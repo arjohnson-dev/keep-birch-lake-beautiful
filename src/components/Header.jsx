@@ -1,3 +1,7 @@
+import HeaderCartButton from "./shop/HeaderCartButton.jsx";
+import { useCart } from "../context/CartContext.jsx";
+import { handleAppLinkClick } from "../lib/navigation.js";
+
 const navigationItems = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
@@ -5,21 +9,16 @@ const navigationItems = [
   { href: "/contact", label: "Contact" },
 ];
 
-function Header({ pathname }) {
-  const handleNavigate = (event, href) => {
-    const url = new URL(href, window.location.origin);
-    if (
-      window.location.pathname === url.pathname &&
-      window.location.hash === url.hash
-    ) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
+function isActivePath(currentPath, href) {
+  if (href === "/") {
+    return currentPath === "/";
+  }
 
-    event.preventDefault();
-    window.history.pushState({}, "", href);
-    window.dispatchEvent(new Event("app:navigate"));
-  };
+  return currentPath === href || currentPath.startsWith(`${href}/`);
+}
+
+function Header({ pathname }) {
+  const { count, openCart } = useCart();
 
   return (
     <header className="site-header">
@@ -27,7 +26,7 @@ function Header({ pathname }) {
         <a
           className="site-header__brand"
           href="/"
-          onClick={(event) => handleNavigate(event, "/")}
+          onClick={(event) => handleAppLinkClick(event, "/")}
         >
           Keep Birch Lake Beautiful
         </a>
@@ -37,13 +36,15 @@ function Header({ pathname }) {
             <a
               key={item.href}
               href={item.href}
-              className={pathname === item.href ? "is-active" : ""}
-              onClick={(event) => handleNavigate(event, item.href)}
+              className={isActivePath(pathname, item.href) ? "is-active" : ""}
+              onClick={(event) => handleAppLinkClick(event, item.href)}
             >
               {item.label}
             </a>
           ))}
         </nav>
+
+        <HeaderCartButton count={count} onOpen={openCart} />
       </div>
     </header>
   );
