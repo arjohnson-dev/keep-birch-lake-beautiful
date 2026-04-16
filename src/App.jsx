@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Footer from "./components/Footer.jsx";
 import Header from "./components/Header.jsx";
 import CartDrawer from "./components/shop/CartDrawer.jsx";
@@ -83,6 +84,7 @@ function App() {
   return (
     <CartProvider>
       <AppFrame />
+      <SpeedInsights />
     </CartProvider>
   );
 }
