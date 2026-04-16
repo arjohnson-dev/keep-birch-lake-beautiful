@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { HiBars3, HiXMark } from "react-icons/hi2";
 import HeaderCartButton from "./shop/HeaderCartButton.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { handleAppLinkClick } from "../lib/navigation.js";
@@ -19,10 +21,23 @@ function isActivePath(currentPath, href) {
 
 function Header({ pathname }) {
   const { count, openCart } = useCart();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navId = "site-primary-navigation";
 
   return (
     <header className="site-header">
       <div className="site-header__inner">
+        <button
+          type="button"
+          className="site-header__menu-toggle"
+          aria-expanded={isMenuOpen}
+          aria-controls={navId}
+          aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          onClick={() => setIsMenuOpen((current) => !current)}
+        >
+          {isMenuOpen ? <HiXMark aria-hidden="true" /> : <HiBars3 aria-hidden="true" />}
+        </button>
+
         <a
           className="site-header__brand"
           href="/"
@@ -31,13 +46,20 @@ function Header({ pathname }) {
           Keep Birch Lake Beautiful
         </a>
 
-        <nav className="site-header__nav" aria-label="Primary">
+        <nav
+          id={navId}
+          className={`site-header__nav${isMenuOpen ? " is-open" : ""}`}
+          aria-label="Primary"
+        >
           {navigationItems.map((item) => (
             <a
               key={item.href}
               href={item.href}
               className={isActivePath(pathname, item.href) ? "is-active" : ""}
-              onClick={(event) => handleAppLinkClick(event, item.href)}
+              onClick={(event) => {
+                setIsMenuOpen(false);
+                handleAppLinkClick(event, item.href);
+              }}
             >
               {item.label}
             </a>
