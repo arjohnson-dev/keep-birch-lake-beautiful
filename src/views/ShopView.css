@@ -570,8 +570,9 @@
     margin-inline: calc(50% - 50vw);
     background: var(--color-background);
     padding: 0.85rem 0 1.85rem;
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: x proximity;
     scroll-padding-inline: 0.9rem;
+    overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;

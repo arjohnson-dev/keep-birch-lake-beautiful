@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ProductImage from "../components/shop/ProductImage.jsx";
 import ProductQuickPreviewModal from "../components/shop/ProductQuickPreviewModal.jsx";
 import { useCart } from "../context/CartContext.jsx";
@@ -44,10 +50,13 @@ function getGarmentLabel(garment) {
 }
 
 const MOBILE_SHOP_MEDIA_QUERY = "(max-width: 640px)";
+const LOOP_COPY_COUNT = 5;
+const LOOP_CENTER_COPY_INDEX = Math.floor(LOOP_COPY_COUNT / 2);
 
 function ShopProductRail({ products, onQuickPreview }) {
   const railRef = useRef(null);
   const isAdjustingRef = useRef(false);
+  const wrapTimeoutRef = useRef(0);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia(MOBILE_SHOP_MEDIA_QUERY).matches
@@ -72,9 +81,23 @@ function ShopProductRail({ products, onQuickPreview }) {
   }, []);
 
   const canLoop = isMobile && products.length > 1;
-  const visibleProducts = canLoop
-    ? [...products, ...products, ...products]
-    : products;
+  const visibleProducts = useMemo(() => {
+    if (!canLoop) {
+      return products.map((product) => ({
+        product,
+        copyIndex: 0,
+        itemIndex: 0,
+      }));
+    }
+
+    return Array.from({ length: LOOP_COPY_COUNT }, (_, copyIndex) =>
+      products.map((product, itemIndex) => ({
+        product,
+        copyIndex,
+        itemIndex,
+      })),
+    ).flat();
+  }, [canLoop, products]);
 
   const getSequenceWidth = useCallback(() => {
     const rail = railRef.current;
@@ -92,29 +115,33 @@ function ShopProductRail({ products, onQuickPreview }) {
     return secondSequenceFirst.offsetLeft - first.offsetLeft;
   }, [products.length]);
 
-  useEffect(() => {
-    if (!canLoop) {
-      return;
-    }
-
+  const alignToMiddleSet = useCallback(() => {
     const rail = railRef.current;
     if (!rail) {
       return;
     }
 
-    const alignToMiddle = () => {
-      const sequenceWidth = getSequenceWidth();
-      if (sequenceWidth > 0) {
-        rail.scrollLeft = sequenceWidth;
-      }
+    const sequenceWidth = getSequenceWidth();
+    if (sequenceWidth > 0) {
+      rail.scrollLeft = sequenceWidth * LOOP_CENTER_COPY_INDEX;
+    }
+  }, [getSequenceWidth]);
+
+  useEffect(() => {
+    if (!canLoop) {
+      return;
+    }
+
+    isAdjustingRef.current = false;
+    alignToMiddleSet();
+    const frameId = window.requestAnimationFrame(alignToMiddleSet);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(wrapTimeoutRef.current);
     };
+  }, [canLoop, alignToMiddleSet]);
 
-    alignToMiddle();
-    const frameId = window.requestAnimationFrame(alignToMiddle);
-    return () => window.cancelAnimationFrame(frameId);
-  }, [canLoop, getSequenceWidth]);
-
-  const handleRailScroll = () => {
+  const correctLoopPosition = useCallback(() => {
     if (!canLoop || isAdjustingRef.current) {
       return;
     }
@@ -129,24 +156,38 @@ function ShopProductRail({ products, onQuickPreview }) {
       return;
     }
 
-    const lowerBoundary = 24;
-    const upperBoundary = sequenceWidth * 2 - 24;
+    const minPreferred = sequenceWidth * (LOOP_CENTER_COPY_INDEX - 0.5);
+    const maxPreferred = sequenceWidth * (LOOP_CENTER_COPY_INDEX + 0.5);
+    let nextScrollLeft = rail.scrollLeft;
 
-    if (rail.scrollLeft > lowerBoundary && rail.scrollLeft < upperBoundary) {
+    while (nextScrollLeft <= minPreferred) {
+      nextScrollLeft += sequenceWidth;
+    }
+
+    while (nextScrollLeft >= maxPreferred) {
+      nextScrollLeft -= sequenceWidth;
+    }
+
+    if (nextScrollLeft === rail.scrollLeft) {
       return;
     }
 
     isAdjustingRef.current = true;
-
-    if (rail.scrollLeft <= lowerBoundary) {
-      rail.scrollLeft += sequenceWidth;
-    } else if (rail.scrollLeft >= upperBoundary) {
-      rail.scrollLeft -= sequenceWidth;
-    }
-
+    rail.scrollLeft = nextScrollLeft;
     window.requestAnimationFrame(() => {
       isAdjustingRef.current = false;
     });
+  }, [canLoop, getSequenceWidth]);
+
+  const handleRailScroll = () => {
+    if (!canLoop || isAdjustingRef.current) {
+      return;
+    }
+
+    window.clearTimeout(wrapTimeoutRef.current);
+    wrapTimeoutRef.current = window.setTimeout(() => {
+      correctLoopPosition();
+    }, 90);
   };
 
   return (
@@ -155,11 +196,9 @@ function ShopProductRail({ products, onQuickPreview }) {
       className="shop-product-grid"
       onScroll={handleRailScroll}
     >
-      {visibleProducts.map((item, index) => {
-        const product = canLoop ? products[index % products.length] : item;
-        const copyIndex = canLoop ? Math.floor(index / products.length) : 0;
+      {visibleProducts.map(({ product, copyIndex, itemIndex }) => {
         const key = canLoop
-          ? `${product.key}-copy-${copyIndex}-${index % products.length}`
+          ? `${product.key}-copy-${copyIndex}-item-${itemIndex}`
           : product.key;
 
         return (
