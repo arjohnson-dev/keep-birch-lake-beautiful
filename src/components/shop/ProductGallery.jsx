@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { BiCollapseAlt, BiExpandAlt } from "react-icons/bi";
+import { BiExpandAlt } from "react-icons/bi";
 import { getDesignImageCandidates, getImageCandidates } from "../../lib/shopProducts.js";
+import ExpandableGalleryLightbox from "../ExpandableGalleryLightbox.jsx";
 
 function imageExists(src) {
   return new Promise((resolve) => {
@@ -58,29 +59,6 @@ function ProductGallery({ product, title, className = "" }) {
     };
   }, [candidateSets, candidateSignature, title]);
 
-  useEffect(() => {
-    if (!isExpanded) {
-      return undefined;
-    }
-
-    const onKeydown = (event) => {
-      if (event.key === "Escape") {
-        setIsExpanded(false);
-      }
-
-      if (event.key === "ArrowRight" && slides.length > 1) {
-        setActiveIndex((current) => (current + 1) % slides.length);
-      }
-
-      if (event.key === "ArrowLeft" && slides.length > 1) {
-        setActiveIndex((current) => (current - 1 + slides.length) % slides.length);
-      }
-    };
-
-    document.addEventListener("keydown", onKeydown);
-    return () => document.removeEventListener("keydown", onKeydown);
-  }, [isExpanded, slides.length]);
-
   const hasSlides = slides.length > 0;
   const hasMultiple = slides.length > 1;
 
@@ -100,8 +78,8 @@ function ProductGallery({ product, title, className = "" }) {
     setActiveIndex((current) => (current + 1) % slides.length);
   };
 
-  const renderGallery = ({ expanded }) => (
-    <div className={`shop-gallery${expanded ? " shop-gallery--expanded" : ""} ${className}`.trim()}>
+  const renderGallery = () => (
+    <div className={`shop-gallery ${className}`.trim()}>
       {hasSlides ? (
         <img
           className="shop-gallery__image"
@@ -132,29 +110,27 @@ function ProductGallery({ product, title, className = "" }) {
       <button
         type="button"
         className="shop-gallery__expand"
-        onClick={() => setIsExpanded((current) => !current)}
-        aria-label={expanded ? "Collapse gallery" : "Expand gallery"}
+        onClick={() => setIsExpanded(true)}
+        aria-label="Expand gallery"
       >
-        {expanded ? <BiCollapseAlt aria-hidden="true" /> : <BiExpandAlt aria-hidden="true" />}
+        <BiExpandAlt aria-hidden="true" />
       </button>
     </div>
   );
 
   return (
     <>
-      {renderGallery({ expanded: false })}
+      {renderGallery()}
 
       {isExpanded ? (
-        <div className="shop-gallery-lightbox" role="dialog" aria-modal="true" aria-label={`${title} expanded gallery`}>
-          <button
-            type="button"
-            className="shop-gallery-lightbox__backdrop"
-            onClick={() => setIsExpanded(false)}
-            aria-label="Close expanded gallery"
-          />
-
-          <div className="shop-gallery-lightbox__panel">{renderGallery({ expanded: true })}</div>
-        </div>
+        <ExpandableGalleryLightbox
+          slides={slides}
+          activeIndex={activeIndex}
+          onPrevious={goPrevious}
+          onNext={goNext}
+          onClose={() => setIsExpanded(false)}
+          ariaLabel={`${title} expanded gallery`}
+        />
       ) : null}
     </>
   );

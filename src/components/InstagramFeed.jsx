@@ -6,7 +6,9 @@ const FEED_CONTAINER_ID = 'curator-feed-default-feed-layout'
 
 function InstagramFeed() {
   useEffect(() => {
-    const existingScript = document.querySelector(`script[src="${CURATOR_SCRIPT_SRC}"]`)
+    const existingScript = document.querySelector(
+      `script[src="${CURATOR_SCRIPT_SRC}"]`
+    )
     if (existingScript) {
       existingScript.remove()
     }
@@ -14,14 +16,15 @@ function InstagramFeed() {
     const feedContainer = document.getElementById(FEED_CONTAINER_ID)
     if (feedContainer) {
       feedContainer.innerHTML =
-        '<a href="https://curator.io" target="_blank" rel="noreferrer" class="crt-logo crt-tag">Powered by Curator.io</a>'
+        '<a href="https://curator.io" target="_blank" class="crt-logo crt-tag">Powered by Curator.io</a>'
     }
 
     const script = document.createElement('script')
     script.async = true
     script.charset = 'UTF-8'
     script.src = CURATOR_SCRIPT_SRC
-    document.body.appendChild(script)
+    const firstScript = document.getElementsByTagName('script')[0]
+    firstScript?.parentNode?.insertBefore(script, firstScript)
 
     return () => {
       script.remove()
@@ -35,7 +38,6 @@ function InstagramFeed() {
           <a
             href="https://curator.io"
             target="_blank"
-            rel="noreferrer"
             className="crt-logo crt-tag"
           >
             Powered by Curator.io

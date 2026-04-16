@@ -3,6 +3,7 @@ import { HiBars3, HiXMark } from "react-icons/hi2";
 import HeaderCartButton from "./shop/HeaderCartButton.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { handleAppLinkClick } from "../lib/navigation.js";
+import "./Header.css";
 
 const navigationItems = [
   { href: "/", label: "Home" },

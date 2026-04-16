@@ -1,6 +1,7 @@
 import HeroCarousel from "../components/HeroCarousel.jsx";
 import InstagramFeed from "../components/InstagramFeed.jsx";
 import { handleAppLinkClick } from "../lib/navigation.js";
+import "./HomeView.css";
 
 function HomeView() {
   return (

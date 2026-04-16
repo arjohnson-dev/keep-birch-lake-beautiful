@@ -1,5 +1,7 @@
 import { useState } from "react";
 import ProfileGallery from "../components/ProfileGallery.jsx";
+import ExpandableGalleryLightbox from "../components/ExpandableGalleryLightbox.jsx";
+import "./AboutView.css";
 
 const phyllisImages = [
   {
@@ -16,7 +18,12 @@ const phyllisImages = [
   },
 ];
 
-const coyImages = [
+const coyHeadshotImage = {
+  src: "/coy/coy-headshot.jpg",
+  alt: "Headshot of Coy Jankowski",
+};
+
+const coyArtworkImages = [
   {
     src: "/coy/coy-art.jpg",
     alt: "Coy Jankowski artwork",
@@ -30,8 +37,8 @@ const coyImages = [
     alt: "Coy Jankowski floral painting",
   },
   {
-    src: "/coy/coy-ladies.jpg",
-    alt: "Coy Jankowski figure painting",
+    src: "/coy/coy-eagle.jpg",
+    alt: "Coy Jankowski eagle painting",
   },
   {
     src: "/coy/coy-nd.jpg",
@@ -44,7 +51,7 @@ const coyImages = [
 ];
 
 function AboutView() {
-  const allAboutImages = [...phyllisImages, ...coyImages];
+  const allAboutImages = [...phyllisImages, coyHeadshotImage, ...coyArtworkImages];
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
 
@@ -154,8 +161,8 @@ function AboutView() {
           <div className="profile-card__media">
             <figure className="artist-headshot">
               <img
-                src="/coy/coy-headshot.jpg"
-                alt="Headshot of Coy Jankowski"
+                src={coyHeadshotImage.src}
+                alt={coyHeadshotImage.alt}
               />
             </figure>
           </div>
@@ -163,11 +170,11 @@ function AboutView() {
           <div className="profile-card__content">
             <div className="profile-card__gallery">
               <ProfileGallery
-                images={coyImages}
+                images={coyArtworkImages}
                 title="Artwork by Coy Jankowski"
                 variant="artist"
                 onImageClick={(index) =>
-                  openGallery(index + phyllisImages.length)
+                  openGallery(index + phyllisImages.length + 1)
                 }
               />
             </div>
@@ -210,43 +217,14 @@ function AboutView() {
       </div>
 
       {galleryOpen && (
-        <div className="gallery-modal" role="dialog" aria-modal="true">
-          <div className="gallery-backdrop" onClick={closeGallery} />
-          <div className="gallery-modal__content">
-            <button
-              type="button"
-              className="gallery-modal__close"
-              onClick={closeGallery}
-              aria-label="Close gallery"
-            >
-              ×
-            </button>
-
-            <div className="gallery-modal__image-wrapper">
-              <img
-                src={allAboutImages[galleryIndex].src}
-                alt={allAboutImages[galleryIndex].alt}
-              />
-            </div>
-
-            <div className="gallery-modal__actions">
-              <button
-                type="button"
-                onClick={showPrev}
-                className="gallery-modal__nav"
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                onClick={showNext}
-                className="gallery-modal__nav"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
+        <ExpandableGalleryLightbox
+          slides={allAboutImages}
+          activeIndex={galleryIndex}
+          onPrevious={showPrev}
+          onNext={showNext}
+          onClose={closeGallery}
+          ariaLabel="About us gallery"
+        />
       )}
     </section>
   );

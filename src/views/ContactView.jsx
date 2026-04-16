@@ -1,3 +1,5 @@
+import "./ContactView.css";
+
 function ContactView() {
   return (
     <section id="contact" className="view">

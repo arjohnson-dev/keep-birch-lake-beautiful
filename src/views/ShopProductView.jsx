@@ -8,6 +8,7 @@ import {
   getPriceLabel,
   humanizeToken,
 } from "../lib/shopProducts.js";
+import "./ShopView.css";
 
 function ShopProductView({ category, garment, design }) {
   const [catalog, setCatalog] = useState([]);

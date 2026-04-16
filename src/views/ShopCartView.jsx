@@ -3,6 +3,7 @@ import CartLineItem from "../components/shop/CartLineItem.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { redirectToCheckout } from "../lib/checkout.js";
 import { handleAppLinkClick } from "../lib/navigation.js";
+import "./ShopView.css";
 
 function formatMoney(amount, currency) {
   return new Intl.NumberFormat("en-US", {

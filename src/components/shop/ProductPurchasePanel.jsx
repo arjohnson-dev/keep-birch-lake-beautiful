@@ -11,12 +11,21 @@ function ProductPurchasePanel({ product, onAdded }) {
   const [quantity, setQuantity] = useState(1);
 
   const hasSizes = product.sizes.length > 0;
+  const inStockSizes = hasSizes
+    ? product.sizes.filter((option) => Boolean(product.sizeItems[option]?.inStock))
+    : [];
+  const selectedSize = hasSizes
+    ? (product.sizeItems[size]?.inStock
+      ? size
+      : inStockSizes[0] ?? product.defaultSize ?? product.sizes[0] ?? "")
+    : "";
   const selectedItem = hasSizes
-    ? product.sizeItems[size] ?? product.baseItem
+    ? product.sizeItems[selectedSize] ?? null
     : product.baseItem;
+  const isSoldOut = !selectedItem || !selectedItem.inStock;
 
   const handleAddToCart = () => {
-    if (!selectedItem) {
+    if (!selectedItem || isSoldOut) {
       return;
     }
 
@@ -61,9 +70,9 @@ function ProductPurchasePanel({ product, onAdded }) {
       {hasSizes ? (
         <label className="shop-product-card__field" htmlFor={`size-${product.key}`}>
           <span>Size</span>
-          <select id={`size-${product.key}`} value={size} onChange={(event) => setSize(event.target.value)}>
+          <select id={`size-${product.key}`} value={selectedSize} onChange={(event) => setSize(event.target.value)}>
             {product.sizes.map((option) => (
-              <option key={option} value={option}>
+              <option key={option} value={option} disabled={!product.sizeItems[option]?.inStock}>
                 {option.toUpperCase()}
               </option>
             ))}
@@ -79,6 +88,7 @@ function ProductPurchasePanel({ product, onAdded }) {
             className="shop-quantity-input__button"
             onClick={() => handleQuantityChange(quantity - 1)}
             aria-label="Decrease quantity"
+            disabled={isSoldOut}
           >
             -
           </button>
@@ -90,20 +100,22 @@ function ProductPurchasePanel({ product, onAdded }) {
             max={MAX_QUANTITY}
             value={quantity}
             onChange={(event) => handleQuantityChange(event.target.value)}
+            disabled={isSoldOut}
           />
           <button
             type="button"
             className="shop-quantity-input__button"
             onClick={() => handleQuantityChange(quantity + 1)}
             aria-label="Increase quantity"
+            disabled={isSoldOut}
           >
             +
           </button>
         </div>
       </label>
 
-      <button type="button" className="shop-product-card__add" onClick={handleAddToCart}>
-        Add to cart
+      <button type="button" className="shop-product-card__add" onClick={handleAddToCart} disabled={isSoldOut}>
+        {isSoldOut ? "SOLD OUT" : "Add to cart"}
       </button>
     </div>
   );

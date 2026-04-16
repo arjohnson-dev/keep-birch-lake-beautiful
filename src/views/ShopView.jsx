@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ProductImage from "../components/shop/ProductImage.jsx";
 import ProductQuickPreviewModal from "../components/shop/ProductQuickPreviewModal.jsx";
 import { useCart } from "../context/CartContext.jsx";
@@ -11,6 +11,201 @@ import {
   groupProducts,
   humanizeToken,
 } from "../lib/shopProducts.js";
+import "./ShopView.css";
+
+function getCategoryLabel(category) {
+  if (category === "print") {
+    return "Artwork";
+  }
+
+  return humanizeToken(category);
+}
+
+function getGarmentLabel(garment) {
+  if (garment === "print") {
+    return "Prints";
+  }
+
+  const label = humanizeToken(garment);
+
+  if (/s$/i.test(label)) {
+    return label;
+  }
+
+  if (/[^aeiou]y$/i.test(label)) {
+    return `${label.slice(0, -1)}ies`;
+  }
+
+  if (/(ch|sh|x|z)$/i.test(label)) {
+    return `${label}es`;
+  }
+
+  return `${label}s`;
+}
+
+const MOBILE_SHOP_MEDIA_QUERY = "(max-width: 640px)";
+
+function ShopProductRail({ products, onQuickPreview }) {
+  const railRef = useRef(null);
+  const isAdjustingRef = useRef(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia(MOBILE_SHOP_MEDIA_QUERY).matches
+      : false,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_SHOP_MEDIA_QUERY);
+    const onChange = (event) => setIsMobile(event.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", onChange);
+      return () => mediaQuery.removeEventListener("change", onChange);
+    }
+
+    mediaQuery.addListener(onChange);
+    return () => mediaQuery.removeListener(onChange);
+  }, []);
+
+  const canLoop = isMobile && products.length > 1;
+  const visibleProducts = canLoop
+    ? [...products, ...products, ...products]
+    : products;
+
+  const getSequenceWidth = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail || rail.children.length <= products.length) {
+      return 0;
+    }
+
+    const first = rail.children[0];
+    const secondSequenceFirst = rail.children[products.length];
+
+    if (!first || !secondSequenceFirst) {
+      return 0;
+    }
+
+    return secondSequenceFirst.offsetLeft - first.offsetLeft;
+  }, [products.length]);
+
+  useEffect(() => {
+    if (!canLoop) {
+      return;
+    }
+
+    const rail = railRef.current;
+    if (!rail) {
+      return;
+    }
+
+    const alignToMiddle = () => {
+      const sequenceWidth = getSequenceWidth();
+      if (sequenceWidth > 0) {
+        rail.scrollLeft = sequenceWidth;
+      }
+    };
+
+    alignToMiddle();
+    const frameId = window.requestAnimationFrame(alignToMiddle);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [canLoop, getSequenceWidth]);
+
+  const handleRailScroll = () => {
+    if (!canLoop || isAdjustingRef.current) {
+      return;
+    }
+
+    const rail = railRef.current;
+    if (!rail) {
+      return;
+    }
+
+    const sequenceWidth = getSequenceWidth();
+    if (sequenceWidth <= 0) {
+      return;
+    }
+
+    const lowerBoundary = 24;
+    const upperBoundary = sequenceWidth * 2 - 24;
+
+    if (rail.scrollLeft > lowerBoundary && rail.scrollLeft < upperBoundary) {
+      return;
+    }
+
+    isAdjustingRef.current = true;
+
+    if (rail.scrollLeft <= lowerBoundary) {
+      rail.scrollLeft += sequenceWidth;
+    } else if (rail.scrollLeft >= upperBoundary) {
+      rail.scrollLeft -= sequenceWidth;
+    }
+
+    window.requestAnimationFrame(() => {
+      isAdjustingRef.current = false;
+    });
+  };
+
+  return (
+    <div
+      ref={railRef}
+      className="shop-product-grid"
+      onScroll={handleRailScroll}
+    >
+      {visibleProducts.map((item, index) => {
+        const product = canLoop ? products[index % products.length] : item;
+        const copyIndex = canLoop ? Math.floor(index / products.length) : 0;
+        const key = canLoop
+          ? `${product.key}-copy-${copyIndex}-${index % products.length}`
+          : product.key;
+
+        return (
+          <article key={key} className="shop-product-card">
+            <ProductImage
+              candidates={getImageCandidates(product)}
+              alt={`${humanizeToken(product.design)} ${humanizeToken(product.garment)}`}
+            />
+
+            <div className="shop-product-card__body">
+              <h5>{humanizeToken(product.design)}</h5>
+              <p className="shop-product-card__price">
+                {getPriceLabel(product)}
+              </p>
+              {!product.inStock ? (
+                <p className="shop-product-card__sold-out">
+                  SOLD OUT
+                </p>
+              ) : null}
+
+              <div className="shop-product-card__actions">
+                <button
+                  type="button"
+                  className="shop-product-card__ghost-btn"
+                  onClick={() => onQuickPreview(product.key)}
+                >
+                  Quick preview
+                </button>
+
+                <a
+                  href={product.slug}
+                  className="shop-product-card__ghost-btn"
+                  onClick={(event) =>
+                    handleAppLinkClick(event, product.slug)
+                  }
+                >
+                  View product
+                </a>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
 
 function ShopView() {
   const { openCart } = useCart();
@@ -101,54 +296,21 @@ function ShopView() {
             <section
               key={category}
               className="shop-card-section"
-              aria-label={humanizeToken(category)}
+              aria-label={getCategoryLabel(category)}
             >
-              <h3>{humanizeToken(category)}</h3>
+              <h3>{getCategoryLabel(category)}</h3>
 
               {Object.entries(garments).map(([garment, garmentProducts]) => (
                 <div
                   key={`${category}-${garment}`}
                   className="shop-garment-block"
                 >
-                  <h4>{humanizeToken(garment)}</h4>
+                  <h4>{getGarmentLabel(garment)}</h4>
 
-                  <div className="shop-product-grid">
-                    {garmentProducts.map((product) => (
-                      <article key={product.key} className="shop-product-card">
-                        <ProductImage
-                          candidates={getImageCandidates(product)}
-                          alt={`${humanizeToken(product.design)} ${humanizeToken(product.garment)}`}
-                        />
-
-                        <div className="shop-product-card__body">
-                          <h5>{humanizeToken(product.design)}</h5>
-                          <p className="shop-product-card__price">
-                            {getPriceLabel(product)}
-                          </p>
-
-                          <div className="shop-product-card__actions">
-                            <button
-                              type="button"
-                              className="shop-product-card__ghost-btn"
-                              onClick={() => setPreviewProductKey(product.key)}
-                            >
-                              Quick preview
-                            </button>
-
-                            <a
-                              href={product.slug}
-                              className="shop-product-card__ghost-btn"
-                              onClick={(event) =>
-                                handleAppLinkClick(event, product.slug)
-                              }
-                            >
-                              View product
-                            </a>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                  <ShopProductRail
+                    products={garmentProducts}
+                    onQuickPreview={setPreviewProductKey}
+                  />
                 </div>
               ))}
             </section>

@@ -1,4 +1,6 @@
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+const SIZE_ORDER = ["s", "m", "l", "xl", "xxl", "xxxl"];
+const SIZE_RANK = new Map(SIZE_ORDER.map((size, index) => [size, index]));
 
 function humanizeToken(token) {
   const labelOverrides = {
@@ -22,12 +24,15 @@ function formatMoney(amount, currency) {
   }).format(amount / 100);
 }
 
-function getDefaultSize(sizes) {
-  if (sizes.includes("m")) {
+function getDefaultSize(sizes, sizeItems = {}) {
+  const inStockSizes = sizes.filter((size) => Boolean(sizeItems[size]?.inStock));
+  const candidates = inStockSizes.length > 0 ? inStockSizes : sizes;
+
+  if (candidates.includes("m")) {
     return "m";
   }
 
-  return sizes[0] ?? "";
+  return candidates[0] ?? "";
 }
 
 function getImageCandidatesForStem(stem) {
@@ -53,7 +58,7 @@ function buildProducts(items) {
 
   for (const item of items) {
     const key = `${item.category}__${item.garment}__${item.design}`;
-    const existing = byKey.get(key) ?? {
+      const existing = byKey.get(key) ?? {
       key,
       category: item.category,
       garment: item.garment,
@@ -62,10 +67,11 @@ function buildProducts(items) {
       currency: item.currency,
       sizeItems: {},
       sizes: [],
-      baseItem: item,
-      minAmount: item.amount,
-      maxAmount: item.amount,
-    };
+        baseItem: item,
+        minAmount: item.amount,
+        maxAmount: item.amount,
+        inStock: false,
+      };
 
     if (item.size) {
       existing.sizeItems[item.size] = item;
@@ -76,6 +82,7 @@ function buildProducts(items) {
 
     existing.minAmount = Math.min(existing.minAmount, item.amount);
     existing.maxAmount = Math.max(existing.maxAmount, item.amount);
+    existing.inStock = existing.inStock || Boolean(item.inStock);
 
     byKey.set(key, existing);
   }
@@ -83,16 +90,30 @@ function buildProducts(items) {
   return [...byKey.values()]
     .map((product) => {
       const uniqueSizes = [...new Set(product.sizes)].sort((left, right) => left.localeCompare(right));
-      const defaultSize = getDefaultSize(uniqueSizes);
-      const baseItem = uniqueSizes.length > 0
-        ? product.sizeItems[defaultSize] ?? product.sizeItems[uniqueSizes[0]]
+      const orderedSizes = uniqueSizes.sort((left, right) => {
+        const leftRank = SIZE_RANK.get(left) ?? Number.MAX_SAFE_INTEGER;
+        const rightRank = SIZE_RANK.get(right) ?? Number.MAX_SAFE_INTEGER;
+
+        if (leftRank !== rightRank) {
+          return leftRank - rightRank;
+        }
+
+        return left.localeCompare(right);
+      });
+      const defaultSize = getDefaultSize(orderedSizes, product.sizeItems);
+      const baseItem = orderedSizes.length > 0
+        ? product.sizeItems[defaultSize] ?? product.sizeItems[orderedSizes[0]]
         : product.baseItem;
+      const inStock = orderedSizes.length > 0
+        ? orderedSizes.some((size) => Boolean(product.sizeItems[size]?.inStock))
+        : Boolean(baseItem?.inStock);
 
       return {
         ...product,
-        sizes: uniqueSizes,
+        sizes: orderedSizes,
         defaultSize,
         baseItem,
+        inStock,
         slug: `/shop/${product.category}/${product.garment}/${product.design}`,
       };
     })

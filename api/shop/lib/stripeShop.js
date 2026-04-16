@@ -79,6 +79,16 @@ function parseLookupKey(lookupKey) {
   };
 }
 
+function parseInStockValue(value) {
+  return typeof value === "string" && value.trim().toLowerCase() === "true";
+}
+
+function readInStockMetadata(price, product) {
+  const productValue = product?.metadata?.["in-stock"];
+  const priceValue = price?.metadata?.["in-stock"];
+  return parseInStockValue(productValue) || parseInStockValue(priceValue);
+}
+
 function normalizePrice(price) {
   if (!price || typeof price.lookup_key !== "string" || !price.active) {
     return null;
@@ -110,6 +120,7 @@ function normalizePrice(price) {
     amount: price.unit_amount,
     currency: price.currency,
     active: true,
+    inStock: readInStockMetadata(price, product),
     imageUrl: null,
   };
 }
@@ -183,6 +194,7 @@ async function resolveCheckoutLineItems(mergedItems) {
     const response = await stripe.prices.list({
       active: true,
       lookup_keys: keyBatch,
+      expand: ["data.product"],
       limit: 100,
     });
 
@@ -208,8 +220,16 @@ async function resolveCheckoutLineItems(mergedItems) {
       };
     }
 
+    const matchingPrice = matching[0];
+    const product = matchingPrice.product;
+    if (!readInStockMetadata(matchingPrice, product)) {
+      return {
+        error: `Item "${item.lookupKey}" is sold out and cannot be purchased right now.`,
+      };
+    }
+
     lineItems.push({
-      price: matching[0].id,
+      price: matchingPrice.id,
       quantity: item.quantity,
     });
   }
