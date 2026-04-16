@@ -39,6 +39,10 @@ function parseRequestBody(req) {
   return null;
 }
 
+function isDonationOnlyCheckout(items) {
+  return items.every((item) => item.lookupKey === "donation");
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -66,19 +70,25 @@ export default async function handler(req, res) {
     const baseUrl = getBaseUrl(req);
     const clientReferenceId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     const allowedShippingCountries = getAllowedShippingCountries();
+    const donationOnlyCheckout = isDonationOnlyCheckout(merged.items);
+    const cancelUrl = donationOnlyCheckout
+      ? `${baseUrl}/`
+      : `${baseUrl}/shop/cart?checkout=cancelled`;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: resolved.lineItems,
       success_url: `${baseUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/shop/cart?checkout=cancelled`,
+      cancel_url: cancelUrl,
       client_reference_id: clientReferenceId,
       customer_creation: "always",
       allow_promotion_codes: false,
       billing_address_collection: "required",
-      shipping_address_collection: {
-        allowed_countries: allowedShippingCountries,
-      },
+      shipping_address_collection: donationOnlyCheckout
+        ? undefined
+        : {
+            allowed_countries: allowedShippingCountries,
+          },
     });
 
     return res.status(200).json({

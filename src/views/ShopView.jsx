@@ -16,6 +16,7 @@ import {
   getPriceLabel,
   groupProducts,
   humanizeToken,
+  isDonationProduct,
 } from "../lib/shopProducts.js";
 import "./ShopView.css";
 
@@ -295,7 +296,10 @@ function ShopView() {
     return () => window.clearTimeout(timeoutId);
   }, [addedMessage]);
 
-  const products = useMemo(() => buildProducts(catalog), [catalog]);
+  const products = useMemo(() => {
+    const allProducts = buildProducts(catalog);
+    return allProducts.filter((product) => !isDonationProduct(product));
+  }, [catalog]);
   const grouped = useMemo(() => groupProducts(products), [products]);
   const previewProduct = useMemo(
     () => products.find((product) => product.key === previewProductKey) ?? null,

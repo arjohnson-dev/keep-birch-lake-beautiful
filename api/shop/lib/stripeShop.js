@@ -2,6 +2,8 @@ import Stripe from "stripe";
 
 const ALLOWED_GARMENTS = new Set(["tshirt", "crewneck", "hooded", "print"]);
 const ALLOWED_SIZES = new Set(["s", "m", "l", "xl", "xxl", "xxxl"]);
+const DONATION_LOOKUP_KEY = "donation";
+const DONATION_PRODUCT_ID = "prod_ULYsjKMKX2RRbT";
 
 let stripeClient;
 
@@ -30,6 +32,15 @@ function chunk(items, size) {
 }
 
 function parseLookupKey(lookupKey) {
+  if (lookupKey === DONATION_LOOKUP_KEY) {
+    return {
+      category: "donation",
+      garment: "donation",
+      design: "donation",
+      size: undefined,
+    };
+  }
+
   if (lookupKey.startsWith("print_")) {
     const design = lookupKey.slice("print_".length);
     if (!design) {
@@ -84,6 +95,13 @@ function parseInStockValue(value) {
 }
 
 function readInStockMetadata(price, product) {
+  if (
+    price?.lookup_key === DONATION_LOOKUP_KEY ||
+    product?.id === DONATION_PRODUCT_ID
+  ) {
+    return true;
+  }
+
   const productValue = product?.metadata?.["in-stock"];
   const priceValue = price?.metadata?.["in-stock"];
   return parseInStockValue(productValue) || parseInStockValue(priceValue);
@@ -126,7 +144,7 @@ function normalizePrice(price) {
 }
 
 function sortCatalogItems(items) {
-  const categoryRank = { apparel: 0, print: 1 };
+  const categoryRank = { apparel: 0, print: 1, donation: 2 };
 
   return [...items].sort((left, right) => {
     const categoryDelta = categoryRank[left.category] - categoryRank[right.category];

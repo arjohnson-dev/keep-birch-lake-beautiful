@@ -1,6 +1,8 @@
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 const SIZE_ORDER = ["s", "m", "l", "xl", "xxl", "xxxl"];
 const SIZE_RANK = new Map(SIZE_ORDER.map((size, index) => [size, index]));
+const DONATION_LOOKUP_KEY = "donation";
+const DONATION_PRODUCT_ID = "prod_ULYsjKMKX2RRbT";
 
 function humanizeToken(token) {
   const labelOverrides = {
@@ -164,6 +166,16 @@ function getPriceLabel(product) {
   return `${formatMoney(product.minAmount, product.currency)} - ${formatMoney(product.maxAmount, product.currency)}`;
 }
 
+function isDonationProduct(entry) {
+  return (
+    entry?.lookupKey === DONATION_LOOKUP_KEY ||
+    entry?.baseItem?.lookupKey === DONATION_LOOKUP_KEY ||
+    entry?.productId === DONATION_PRODUCT_ID ||
+    entry?.baseItem?.productId === DONATION_PRODUCT_ID ||
+    entry?.key === "donation__donation__donation"
+  );
+}
+
 export {
   buildProducts,
   formatMoney,
@@ -172,4 +184,5 @@ export {
   getPriceLabel,
   groupProducts,
   humanizeToken,
+  isDonationProduct,
 };

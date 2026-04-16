@@ -33,6 +33,7 @@ function InstagramFeed() {
 
   return (
     <section className="instagram-section" aria-label="Instagram feed">
+      <h2 className="instagram-section__title">Visit us on Instagram</h2>
       <div className="instagram-feed-shell">
         <div id={FEED_CONTAINER_ID}>
           <a
