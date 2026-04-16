@@ -36,6 +36,15 @@ function requireEnv(name: (typeof REQUIRED_ENV_VARS)[number]): string {
 }
 
 function parseLookupKey(lookupKey: string) {
+  if (lookupKey === "donation") {
+    return {
+      category: "donation",
+      garment: "donation",
+      design: "donation",
+      size: null,
+    };
+  }
+
   if (lookupKey.startsWith("print_")) {
     const design = lookupKey.slice("print_".length);
 
@@ -67,16 +76,35 @@ function parseLookupKey(lookupKey: string) {
   }
 
   const tokens = lookupKey.split("_");
-  if (tokens.length < 3) {
-    return null;
+  if (tokens.length < 2) {
+    return {
+      category: "apparel",
+      garment: "unknown",
+      design: lookupKey,
+      size: null,
+    };
   }
 
   const garment = tokens[0] ?? "";
   const size = tokens[tokens.length - 1] ?? "";
   const design = tokens.slice(1, -1).join("_");
 
-  if (!garment || !size || !design) {
-    return null;
+  if (!garment || !design) {
+    return {
+      category: "apparel",
+      garment: garment || "unknown",
+      design: lookupKey,
+      size: null,
+    };
+  }
+
+  if (!ALLOWED_GARMENTS.has(garment) || !ALLOWED_SIZES.has(size)) {
+    return {
+      category: "apparel",
+      garment,
+      design,
+      size: ALLOWED_SIZES.has(size) ? size : null,
+    };
   }
 
   return {
@@ -87,29 +115,25 @@ function parseLookupKey(lookupKey: string) {
   };
 }
 
-function mapLineItem(item: Stripe.LineItem, orderId: string): OrderItemInsert {
+function mapLineItem(item: Stripe.LineItem, orderId: string): OrderItemInsert | null {
   const price = item.price;
   const quantity = item.quantity ?? 0;
 
   if (!price || !price.id) {
-    throw new Error(
-      `Line item missing price id for description: ${item.description ?? "unknown"}`,
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "Skipping line item without price id",
+        orderId,
+        description: item.description ?? "unknown",
+      }),
     );
+    return null;
   }
 
-  const lookupKey = price.lookup_key;
-  if (!lookupKey) {
-    throw new Error(
-      `Price ${price.id} is missing lookup_key. This is required for order snapshots.`,
-    );
-  }
+  const lookupKey = price.lookup_key ?? `price_${price.id}`;
 
   const parsed = parseLookupKey(lookupKey);
-  if (!parsed) {
-    throw new Error(
-      `Unable to parse lookup_key '${lookupKey}' into category/garment/design/size.`,
-    );
-  }
 
   const product = price.product;
   const productName =
@@ -120,6 +144,12 @@ function mapLineItem(item: Stripe.LineItem, orderId: string): OrderItemInsert {
   const unitAmount =
     price.unit_amount ??
     (quantity > 0 ? Math.floor((item.amount_subtotal ?? 0) / quantity) : 0);
+  const safeQuantity = Math.max(1, quantity);
+  const safeUnitAmount = Math.max(0, unitAmount);
+  const safeLineTotal = Math.max(
+    0,
+    item.amount_total ?? safeUnitAmount * safeQuantity,
+  );
 
   return {
     order_id: orderId,
@@ -130,9 +160,9 @@ function mapLineItem(item: Stripe.LineItem, orderId: string): OrderItemInsert {
     garment: parsed.garment,
     design: parsed.design,
     size: parsed.size,
-    quantity,
-    unit_amount,
-    line_total: item.amount_total ?? unitAmount * quantity,
+    quantity: safeQuantity,
+    unit_amount: safeUnitAmount,
+    line_total: safeLineTotal,
   };
 }
 
@@ -247,20 +277,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    const mappedItems = lineItems.data.map((item) =>
-      mapLineItem(item, orderId),
-    );
+    const mappedItems = lineItems.data
+      .map((item) => mapLineItem(item, orderId))
+      .filter((item): item is OrderItemInsert => item !== null);
 
-    if (mappedItems.length > 0) {
-      const { error: insertItemsError } = await supabase
+    let insertedItemCount = 0;
+    const itemInsertFailures: string[] = [];
+
+    for (const mappedItem of mappedItems) {
+      const { error: insertItemError } = await supabase
         .from("order_items")
-        .insert(mappedItems);
+        .insert(mappedItem);
 
-      if (insertItemsError) {
-        throw new Error(
-          `Failed to insert order items: ${insertItemsError.message}`,
+      if (insertItemError) {
+        itemInsertFailures.push(
+          `${mappedItem.lookup_key}: ${insertItemError.message}`,
         );
+        continue;
       }
+
+      insertedItemCount += 1;
+    }
+
+    if (mappedItems.length > 0 && insertedItemCount === 0) {
+      throw new Error(
+        `Failed to insert order items. Errors: ${itemInsertFailures.join(" | ")}`,
+      );
+    }
+
+    if (itemInsertFailures.length > 0) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "Some order items could not be inserted",
+          orderId,
+          failures: itemInsertFailures,
+        }),
+      );
     }
 
     console.log(
@@ -269,7 +322,8 @@ Deno.serve(async (req) => {
         message: "Processed checkout.session.completed",
         checkoutSessionId: session.id,
         orderId,
-        itemCount: mappedItems.length,
+        itemCount: insertedItemCount,
+        mappedItemCount: mappedItems.length,
       }),
     );
 
