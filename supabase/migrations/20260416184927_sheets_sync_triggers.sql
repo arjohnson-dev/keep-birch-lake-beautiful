@@ -60,4 +60,4 @@ drop trigger if exists trg_order_items_sheets_sync on public.order_items;
 create trigger trg_order_items_sheets_sync
 after insert or update or delete on public.order_items
 for each row
-execute function public.enqueue_sheets_sync();
+execute function public.enqueue_sheets_sync();;

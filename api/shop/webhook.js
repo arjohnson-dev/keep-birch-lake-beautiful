@@ -52,6 +52,15 @@ function parseLookupKey(lookupKey) {
     return null;
   }
 
+  if (lookupKey === "donation") {
+    return {
+      category: "donation",
+      garment: "donation",
+      design: "donation",
+      size: null,
+    };
+  }
+
   if (lookupKey.startsWith("print_")) {
     const design = lookupKey.slice("print_".length);
     if (!design) {
