@@ -6,6 +6,9 @@ const DONATION_LOOKUP_KEY = "donation";
 const DONATION_PRODUCT_ID = "prod_ULYsjKMKX2RRbT";
 
 let stripeClient;
+let cachedCatalog = null;
+let cachedCatalogAt = 0;
+const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function getStripeClient() {
   if (stripeClient) {
@@ -167,21 +170,42 @@ function sortCatalogItems(items) {
 }
 
 async function listNormalizedCatalog() {
+  if (cachedCatalog && Date.now() - cachedCatalogAt < CATALOG_CACHE_TTL_MS) {
+    return cachedCatalog;
+  }
+
   const stripe = getStripeClient();
   const items = [];
+  let startingAfter;
 
-  for await (const price of stripe.prices.list({
-    active: true,
-    expand: ["data.product"],
-    limit: 100,
-  })) {
-    const normalized = normalizePrice(price);
-    if (normalized) {
-      items.push(normalized);
+  for (;;) {
+    const response = await stripe.prices.list({
+      active: true,
+      expand: ["data.product"],
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+
+    for (const price of response.data) {
+      const normalized = normalizePrice(price);
+      if (normalized) {
+        items.push(normalized);
+      }
+    }
+
+    if (!response.has_more || response.data.length === 0) {
+      break;
+    }
+
+    startingAfter = response.data[response.data.length - 1]?.id;
+    if (!startingAfter) {
+      break;
     }
   }
 
-  return sortCatalogItems(items);
+  cachedCatalog = sortCatalogItems(items);
+  cachedCatalogAt = Date.now();
+  return cachedCatalog;
 }
 
 function mergeCheckoutItems(rawItems) {

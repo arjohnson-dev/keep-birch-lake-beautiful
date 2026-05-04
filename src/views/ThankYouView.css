@@ -1,0 +1,216 @@
+.thank-you-view {
+  gap: 1.5rem;
+}
+
+.thank-you-panel,
+.thank-you-card,
+.thank-you-receipt,
+.thank-you-item {
+  padding: 1.15rem;
+}
+
+.thank-you-card,
+.thank-you-receipt,
+.thank-you-items,
+.thank-you-totals {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.thank-you-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.9rem;
+}
+
+.thank-you-card p,
+.thank-you-summary-row,
+.thank-you-item {
+  margin: 0;
+}
+
+.thank-you-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(33 29 30 / 0.72);
+}
+
+.thank-you-summary-row {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.thank-you-summary-row strong,
+.thank-you-item strong,
+.thank-you-totals strong {
+  word-break: break-word;
+}
+
+.thank-you-prewrap {
+  white-space: pre-wrap;
+}
+
+.thank-you-receipt {
+  gap: 1.4rem;
+  border: 1px solid rgb(62 50 45 / 0.18);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.7), rgb(255 252 247 / 0.92)),
+    repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 2.1rem,
+      rgb(109 92 84 / 0.05) 2.1rem,
+      rgb(109 92 84 / 0.05) 2.16rem
+    );
+  box-shadow: 0 1.6rem 3rem rgb(50 36 24 / 0.11);
+}
+
+.thank-you-receipt__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed rgb(62 50 45 / 0.22);
+}
+
+.thank-you-receipt__brand {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.thank-you-receipt__brand h3,
+.thank-you-receipt__brand p {
+  margin: 0;
+}
+
+.thank-you-download-button {
+  border: 1px solid rgb(33 29 30 / 0.2);
+  background: rgb(255 255 255 / 0.82);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.thank-you-download-button:hover,
+.thank-you-download-button:focus-visible {
+  background: rgb(255 255 255 / 1);
+  border-color: rgb(33 29 30 / 0.34);
+  transform: translateY(-1px);
+}
+
+.thank-you-grid--receipt {
+  grid-template-columns: 1fr;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed rgb(62 50 45 / 0.22);
+}
+
+.thank-you-receipt__table {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.thank-you-receipt__table-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4rem 8rem;
+  gap: 1rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(33 29 30 / 0.72);
+}
+
+.thank-you-receipt__table-head span:nth-child(2),
+.thank-you-receipt__table-head span:nth-child(3) {
+  text-align: right;
+}
+
+.thank-you-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.thank-you-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4rem 8rem;
+  align-items: start;
+  gap: 1rem;
+  padding-inline: 0;
+  border: 0;
+  border-bottom: 1px solid rgb(62 50 45 / 0.08);
+  border-radius: 0;
+  background: transparent;
+}
+
+.thank-you-item__meta {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.thank-you-item__quantity {
+  color: var(--color-text-soft);
+}
+
+.thank-you-item__count,
+.thank-you-item__pricing {
+  text-align: right;
+}
+
+.thank-you-totals {
+  justify-items: end;
+  padding-top: 0.5rem;
+  border-top: 1px dashed rgb(62 50 45 / 0.22);
+}
+
+.thank-you-totals p {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.thank-you-totals .thank-you-total {
+  font-size: 1.3rem;
+}
+
+.thank-you-note {
+  color: var(--color-text-soft);
+}
+
+@media (max-width: 720px) {
+  .thank-you-receipt__header {
+    flex-direction: column;
+  }
+
+  .thank-you-download-button {
+    width: 100%;
+  }
+
+  .thank-you-receipt__table-head {
+    display: none;
+  }
+
+  .thank-you-item {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .thank-you-item__count,
+  .thank-you-item__pricing,
+  .thank-you-totals {
+    text-align: left;
+    justify-items: start;
+  }
+}

@@ -8,6 +8,7 @@ export default async function handler(req, res) {
 
   try {
     const items = await listNormalizedCatalog();
+    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=86400");
     return res.status(200).json({ items });
   } catch (error) {
     return res.status(500).json({

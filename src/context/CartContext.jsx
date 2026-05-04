@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "kblb:cart:v1";
 
@@ -40,6 +40,53 @@ function CartProvider({ children }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
+  const openCart = useCallback(() => setIsOpen(true), []);
+  const closeCart = useCallback(() => setIsOpen(false), []);
+  const clearCart = useCallback(() => setItems([]), []);
+
+  const addItem = useCallback((incomingItem) => {
+    const incomingQuantity = Math.max(
+      1,
+      Math.min(99, Math.floor(Number(incomingItem.quantity) || 1)),
+    );
+
+    setItems((previous) => {
+      const index = previous.findIndex(
+        (item) => item.lookupKey === incomingItem.lookupKey,
+      );
+
+      if (index === -1) {
+        return [...previous, { ...incomingItem, quantity: incomingQuantity }];
+      }
+
+      return previous.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, quantity: Math.min(99, item.quantity + incomingQuantity) }
+          : item,
+      );
+    });
+  }, []);
+
+  const updateQuantity = useCallback((lookupKey, quantity) => {
+    const normalized = Math.max(0, Math.min(99, Math.floor(quantity)));
+
+    setItems((previous) => {
+      if (normalized === 0) {
+        return previous.filter((item) => item.lookupKey !== lookupKey);
+      }
+
+      return previous.map((item) =>
+        item.lookupKey === lookupKey ? { ...item, quantity: normalized } : item,
+      );
+    });
+  }, []);
+
+  const removeItem = useCallback((lookupKey) => {
+    setItems((previous) =>
+      previous.filter((item) => item.lookupKey !== lookupKey),
+    );
+  }, []);
+
   const api = useMemo(() => {
     const count = items.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = items.reduce(
@@ -52,51 +99,14 @@ function CartProvider({ children }) {
       count,
       subtotal,
       isOpen,
-      openCart: () => setIsOpen(true),
-      closeCart: () => setIsOpen(false),
-      clearCart: () => setItems([]),
-      addItem: (incomingItem) => {
-        const incomingQuantity = Math.max(
-          1,
-          Math.min(99, Math.floor(Number(incomingItem.quantity) || 1)),
-        );
-
-        setItems((previous) => {
-          const index = previous.findIndex(
-            (item) => item.lookupKey === incomingItem.lookupKey,
-          );
-
-          if (index === -1) {
-            return [...previous, { ...incomingItem, quantity: incomingQuantity }];
-          }
-
-          return previous.map((item, itemIndex) =>
-            itemIndex === index
-              ? { ...item, quantity: Math.min(99, item.quantity + incomingQuantity) }
-              : item,
-          );
-        });
-      },
-      updateQuantity: (lookupKey, quantity) => {
-        const normalized = Math.max(0, Math.min(99, Math.floor(quantity)));
-
-        setItems((previous) => {
-          if (normalized === 0) {
-            return previous.filter((item) => item.lookupKey !== lookupKey);
-          }
-
-          return previous.map((item) =>
-            item.lookupKey === lookupKey ? { ...item, quantity: normalized } : item,
-          );
-        });
-      },
-      removeItem: (lookupKey) => {
-        setItems((previous) =>
-          previous.filter((item) => item.lookupKey !== lookupKey),
-        );
-      },
+      openCart,
+      closeCart,
+      clearCart,
+      addItem,
+      updateQuantity,
+      removeItem,
     };
-  }, [isOpen, items]);
+  }, [addItem, clearCart, closeCart, isOpen, items, openCart, removeItem, updateQuantity]);
 
   return <CartContext.Provider value={api}>{children}</CartContext.Provider>;
 }
