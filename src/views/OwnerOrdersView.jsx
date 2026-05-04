@@ -574,9 +574,7 @@ function OwnerOrdersView() {
     return (
       <section className="view owner-orders-view">
         <div className="section-heading">
-          <span className="eyebrow">Owner access</span>
-          <h2>Orders dashboard</h2>
-          <p>Sign in with a Supabase Auth email and password to review and update orders.</p>
+          <h2>Order Management System</h2>
         </div>
 
         <form className="owner-orders-auth surface-card" onSubmit={handleSignIn}>
@@ -624,7 +622,7 @@ function OwnerOrdersView() {
     <section className="view owner-orders-view">
       <div className="owner-orders-hero surface-card">
         <div className="section-heading">
-          <h2>Orders dashboard</h2>
+          <h2>Order Management System</h2>
         </div>
 
         <div className="owner-orders-toolbar">
