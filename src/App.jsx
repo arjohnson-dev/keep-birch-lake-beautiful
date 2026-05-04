@@ -8,6 +8,8 @@ import AboutView from "./views/AboutView.jsx";
 import ContactView from "./views/ContactView.jsx";
 import ShopCartView from "./views/ShopCartView.jsx";
 import HomeView from "./views/HomeView.jsx";
+import OwnerOrdersView from "./views/OwnerOrdersView.jsx";
+import OwnerPasswordResetView from "./views/OwnerPasswordResetView.jsx";
 import ShopProductView from "./views/ShopProductView.jsx";
 import ShopView from "./views/ShopView.jsx";
 import ThankYouView from "./views/ThankYouView.jsx";
@@ -20,6 +22,8 @@ const routes = {
   "/contact": ContactView,
   "/thank-you": ThankYouView,
   "/shop/cancel": ShopView,
+  "/orders": OwnerOrdersView,
+  "/orders/password-reset": OwnerPasswordResetView,
 };
 
 function resolveShopProductPath(pathname) {
@@ -37,6 +41,7 @@ function resolveShopProductPath(pathname) {
 
 function AppFrame() {
   const [pathname, setPathname] = useState(window.location.pathname);
+  const hideHeader = pathname === "/orders" || pathname === "/orders/password-reset";
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -68,7 +73,7 @@ function AppFrame() {
 
   return (
     <div id="top" className="page-shell">
-      <Header pathname={pathname} />
+      {hideHeader ? null : <Header pathname={pathname} />}
 
       <main className="app-shell">
         <ActiveView {...viewProps} />

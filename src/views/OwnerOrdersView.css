@@ -1,0 +1,347 @@
+.owner-orders-view {
+  gap: 1.5rem;
+}
+
+.owner-orders-hero,
+.owner-orders-panel,
+.owner-orders-auth,
+.owner-orders-card,
+.owner-orders-stat {
+  padding: 1.15rem;
+}
+
+.owner-orders-auth,
+.owner-orders-editor,
+.owner-orders-list,
+.owner-orders-filters,
+.owner-orders-toolbar-actions,
+.owner-orders-actions,
+.owner-orders-stats {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.owner-orders-toolbar,
+.owner-orders-card__header,
+.owner-orders-item,
+.owner-orders-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.owner-orders-toolbar,
+.owner-orders-card__header,
+.owner-orders-item,
+.owner-orders-actions {
+  align-items: start;
+}
+
+.owner-orders-toolbar {
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.owner-orders-toolbar-actions {
+  grid-auto-flow: column;
+}
+
+.owner-orders-stats {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.owner-orders-stat {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.owner-orders-stat span,
+.owner-orders-field span,
+.owner-orders-meta span,
+.owner-orders-card__eyebrow {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(33 29 30 / 0.72);
+}
+
+.owner-orders-stat strong {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-family: var(--font-title);
+  line-height: 1;
+}
+
+.owner-orders-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.owner-orders-field input,
+.owner-orders-field select,
+.owner-orders-field textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: var(--color-background-dark);
+  padding: 0.75rem 0.85rem;
+}
+
+.owner-orders-inline-select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: var(--color-background-dark);
+  padding: 0.55rem 0.75rem;
+}
+
+.owner-orders-field textarea {
+  resize: vertical;
+}
+
+.owner-orders-primary,
+.owner-orders-secondary,
+.owner-orders-filter,
+.owner-orders-closure-toggle {
+  border-radius: 0.85rem;
+  min-height: 2.9rem;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+}
+
+.owner-orders-primary {
+  border: 0;
+  background: var(--color-button-primary);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.owner-orders-secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-background-light);
+}
+
+.owner-orders-filter,
+.owner-orders-closure-toggle {
+  border: 1px solid var(--color-border);
+}
+
+.owner-orders-filter {
+  background: var(--color-background-light);
+  color: var(--color-text);
+}
+
+.owner-orders-closure-toggle {
+  background: var(--color-button-primary);
+  color: var(--color-text);
+}
+
+.owner-orders-filter.is-active,
+.owner-orders-closure-toggle.is-closed {
+  background: var(--color-button-neutral);
+  color: var(--color-background);
+}
+
+.owner-orders-primary:disabled,
+.owner-orders-secondary:disabled,
+.owner-orders-filter:disabled,
+.owner-orders-closure-toggle:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.owner-orders-checkbox-row input:disabled,
+.owner-orders-checkbox-row input:disabled + span,
+.owner-orders-checkbox-row:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.owner-orders-error,
+.owner-orders-note {
+  margin: 0;
+}
+
+.owner-orders-link {
+  font-size: 0.96rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.owner-orders-error {
+  color: rgb(167, 55, 66);
+}
+
+.owner-orders-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.owner-orders-card h3 {
+  font-size: clamp(2rem, 3.6vw, 2.7rem);
+}
+
+.owner-orders-card__total {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.owner-orders-filters {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, max-content));
+}
+
+.owner-orders-card__total strong {
+  font-size: 1.3rem;
+}
+
+.owner-orders-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.8rem;
+}
+
+.owner-orders-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.8rem;
+}
+
+.owner-orders-meta p {
+  margin: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.owner-orders-details p,
+.owner-orders-contents {
+  margin: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.owner-orders-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+}
+
+.owner-orders-details__wide {
+  grid-column: 1 / -1;
+}
+
+.owner-orders-meta strong,
+.owner-orders-item strong {
+  word-break: break-word;
+}
+
+.owner-orders-prewrap {
+  white-space: pre-wrap;
+}
+
+.owner-orders-contents h2 {
+  font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+  line-height: 1.05;
+}
+
+.owner-orders-collapse-toggle {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.2rem 0.35rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.owner-orders-collapse-toggle span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(33 29 30 / 0.72);
+}
+
+.owner-orders-collapse-toggle svg {
+  font-size: 1rem;
+}
+
+.owner-orders-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.owner-orders-checkbox-row span {
+  color: var(--color-text-soft);
+}
+
+.owner-orders-checkbox-row input {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.owner-orders-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.owner-orders-item {
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-border);
+  background: rgb(255 255 255 / 0.25);
+}
+
+.owner-orders-item__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.owner-orders-item p {
+  font-size: 0.95rem;
+}
+
+.owner-orders-item__quantity {
+  margin-top: 0.2rem;
+  color: var(--color-text-soft);
+}
+
+.owner-orders-item__pricing {
+  display: grid;
+  justify-items: end;
+  gap: 0.2rem;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .owner-orders-toolbar-actions {
+    grid-auto-flow: row;
+    width: 100%;
+  }
+
+  .owner-orders-toolbar-actions button,
+  .owner-orders-primary,
+  .owner-orders-secondary {
+    width: 100%;
+  }
+
+  .owner-orders-card__header,
+  .owner-orders-item,
+  .owner-orders-actions {
+    flex-direction: column;
+  }
+
+  .owner-orders-card__total,
+  .owner-orders-item__pricing {
+    justify-items: start;
+    text-align: left;
+  }
+}
