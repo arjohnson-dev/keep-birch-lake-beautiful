@@ -131,9 +131,28 @@
   gap: 0.8rem;
 }
 
-.instagram-section__title {
-  font-size: clamp(1.8rem, 3.5vw, 2.5rem);
-  line-height: 1.15;
+.instagram-section__intro {
+  max-width: 42rem;
+  color: rgb(33 29 30 / 0.78);
+  line-height: 1.55;
+}
+
+.instagram-section__button {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  background: var(--color-button-primary);
+  color: var(--color-text);
+  padding: 0.75rem 1.2rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .instagram-feed-shell {
