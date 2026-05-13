@@ -122,6 +122,9 @@ function ShopProductView({ category, garment, design }) {
           <div className="shop-product-detail__body">
             <p className="eyebrow">{humanizeToken(product.category)}</p>
             <h3>{title}</h3>
+            {product.description ? (
+              <p className="shop-product-description">{product.description}</p>
+            ) : null}
             <p className="shop-product-card__price">{getPriceLabel(product)}</p>
             <ProductPurchasePanel
               key={product.key}

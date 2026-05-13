@@ -57,6 +57,9 @@ function ProductQuickPreviewModal({ product, onClose, onAdded }) {
 
         <div className="shop-preview-modal__content">
           <h3>{title}</h3>
+          {product.description ? (
+            <p className="shop-product-description">{product.description}</p>
+          ) : null}
           <p>{priceLabel}</p>
           <ProductPurchasePanel key={product.key} product={product} onAdded={onAdded} />
         </div>

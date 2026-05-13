@@ -95,6 +95,11 @@
   color: rgb(33 29 30 / 0.9);
 }
 
+.shop-product-description {
+  color: rgb(33 29 30 / 0.78);
+  line-height: 1.55;
+}
+
 .shop-product-card__sold-out {
   margin: 0;
   font-size: 0.85rem;

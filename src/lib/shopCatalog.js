@@ -1,6 +1,6 @@
 import { requestJson } from "./api.js";
 
-const CATALOG_CACHE_KEY = "kblb:shop-catalog:v3";
+const CATALOG_CACHE_KEY = "kblb:shop-catalog:v4";
 
 function readCatalogCache() {
   if (typeof window === "undefined") {

@@ -164,6 +164,7 @@ function normalizePrice(price) {
     priceId: price.id,
     lookupKey: price.lookup_key,
     name: product.name,
+    description: product.description ?? "",
     category: parsed.category,
     garment: parsed.garment,
     design: parsed.design,

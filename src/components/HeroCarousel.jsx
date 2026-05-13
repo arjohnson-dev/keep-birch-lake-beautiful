@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 const MAX_SLIDES = 8;
+const FEATURED_HERO_IMAGE = "towels.jpg";
 const SHOP_IMAGE_FILENAMES = [
+  FEATURED_HERO_IMAGE,
   "crewneck_seagull.jpg",
   "crewneck_trout.jpg",
   "crewneck_turtle.jpg",
@@ -10,6 +12,9 @@ const SHOP_IMAGE_FILENAMES = [
   "hooded_turtle.jpg",
   "seagull_print.jpg",
   "seagull.jpg",
+  "towel_navy.jpg",
+  "towel_white.jpg",
+  "towels.jpg",
   "trout_print.jpg",
   "trout.jpg",
   "tshirt_seagull.jpg",
@@ -40,15 +45,20 @@ function shuffle(values) {
 function HeroCarousel() {
   const slides = useMemo(
     () =>
-      shuffle(SHOP_IMAGE_FILENAMES)
-        .slice(0, MAX_SLIDES)
-        .map((filename) => {
-          const stem = filename.replace(/\.[^.]+$/, "");
-          return {
-            src: `/shop/${filename}`,
-            alt: `${toTitle(stem)} artwork`,
-          };
-        }),
+      [
+        FEATURED_HERO_IMAGE,
+        ...shuffle(
+          SHOP_IMAGE_FILENAMES.filter(
+            (filename) => filename !== FEATURED_HERO_IMAGE,
+          ),
+        ).slice(0, MAX_SLIDES - 1),
+      ].map((filename) => {
+        const stem = filename.replace(/\.[^.]+$/, "");
+        return {
+          src: `/shop/${filename}`,
+          alt: `${toTitle(stem)} artwork`,
+        };
+      }),
     [],
   );
   const [activeSlide, setActiveSlide] = useState(0);

@@ -88,6 +88,7 @@ function buildProducts(items) {
       garment: item.garment,
       design: item.design,
       name: item.name,
+      description: item.description ?? "",
       currency: item.currency,
       sizeItems: {},
       sizes: [],
@@ -107,6 +108,9 @@ function buildProducts(items) {
     existing.minAmount = Math.min(existing.minAmount, item.amount);
     existing.maxAmount = Math.max(existing.maxAmount, item.amount);
     existing.inStock = existing.inStock || Boolean(item.inStock);
+    if (!existing.description && item.description) {
+      existing.description = item.description;
+    }
 
     byKey.set(key, existing);
   }
