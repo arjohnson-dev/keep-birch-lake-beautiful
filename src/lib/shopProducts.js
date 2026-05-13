@@ -1,11 +1,14 @@
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
 const SIZE_ORDER = ["s", "m", "l", "xl", "xxl", "xxxl"];
 const SIZE_RANK = new Map(SIZE_ORDER.map((size, index) => [size, index]));
+const CATEGORY_ORDER = ["home_goods", "apparel", "print", "donation"];
+const CATEGORY_RANK = new Map(CATEGORY_ORDER.map((category, index) => [category, index]));
 const DONATION_LOOKUP_KEY = "donation";
 const DONATION_PRODUCT_ID = "prod_ULYsjKMKX2RRbT";
 
 function humanizeToken(token) {
   const labelOverrides = {
+    home_goods: "Home Goods",
     tshirt: "T-Shirt",
     hooded: "Hoodies",
   };
@@ -53,6 +56,25 @@ function getImageCandidates({ garment, design, category }) {
 
 function getDesignImageCandidates({ design }) {
   return getImageCandidatesForStem(design);
+}
+
+function compareCategories(left, right) {
+  const leftRank = CATEGORY_RANK.get(left) ?? Number.MAX_SAFE_INTEGER;
+  const rightRank = CATEGORY_RANK.get(right) ?? Number.MAX_SAFE_INTEGER;
+
+  if (leftRank !== rightRank) {
+    return leftRank - rightRank;
+  }
+
+  return left.localeCompare(right);
+}
+
+function getSecondaryImageCandidates(product) {
+  if (product.category === "home_goods" && product.garment === "towel") {
+    return getImageCandidatesForStem("towels");
+  }
+
+  return getDesignImageCandidates(product);
 }
 
 function buildProducts(items) {
@@ -120,7 +142,7 @@ function buildProducts(items) {
       };
     })
     .sort((left, right) => {
-      const categoryDelta = left.category.localeCompare(right.category);
+      const categoryDelta = compareCategories(left.category, right.category);
       if (categoryDelta !== 0) {
         return categoryDelta;
       }
@@ -181,6 +203,7 @@ export {
   formatMoney,
   getDesignImageCandidates,
   getImageCandidates,
+  getSecondaryImageCandidates,
   getPriceLabel,
   groupProducts,
   humanizeToken,

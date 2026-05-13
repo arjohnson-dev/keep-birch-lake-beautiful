@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BiExpandAlt } from "react-icons/bi";
-import { getDesignImageCandidates, getImageCandidates } from "../../lib/shopProducts.js";
+import { getImageCandidates, getSecondaryImageCandidates } from "../../lib/shopProducts.js";
 import ExpandableGalleryLightbox from "../ExpandableGalleryLightbox.jsx";
 
 function imageExists(src) {
@@ -29,7 +29,7 @@ function ProductGallery({ product, title, className = "" }) {
     () =>
       product.category === "print"
         ? [getImageCandidates(product)]
-        : [getImageCandidates(product), getDesignImageCandidates(product)],
+        : [getImageCandidates(product), getSecondaryImageCandidates(product)],
     [product],
   );
 

@@ -5,6 +5,14 @@ function formatMoney(amount, currency) {
   }).format(amount / 100);
 }
 
+function getItemLabel(item) {
+  if (item.category === "print") {
+    return `${item.design} print`;
+  }
+
+  return [item.design, item.garment, item.size].filter(Boolean).join(" ");
+}
+
 function CatalogGroup({ title, items }) {
   return (
     <section className="catalog-group" aria-label={title}>
@@ -12,11 +20,7 @@ function CatalogGroup({ title, items }) {
       <ul>
         {items.map((item) => (
           <li key={item.lookupKey}>
-            <span>
-              {item.category === "print"
-                ? `${item.design} print`
-                : `${item.design} ${item.garment} ${item.size}`}
-            </span>
+            <span>{getItemLabel(item)}</span>
             <strong>{formatMoney(item.amount, item.currency)}</strong>
           </li>
         ))}

@@ -5,6 +5,14 @@ function formatMoney(amount, currency) {
   }).format(amount / 100);
 }
 
+function getItemMeta(item) {
+  if (item.category === "print") {
+    return `Print · ${item.design}`;
+  }
+
+  return [item.garment, item.design, item.size].filter(Boolean).join(" · ");
+}
+
 function CartLineItem({ item, onIncrement, onDecrement, onRemove }) {
   const lineSubtotal = item.unitAmount * item.quantity;
 
@@ -13,9 +21,7 @@ function CartLineItem({ item, onIncrement, onDecrement, onRemove }) {
       <div className="cart-line-item__copy">
         <p className="cart-line-item__name">{item.name}</p>
         <p className="cart-line-item__meta">
-          {item.category === "print"
-            ? `Print · ${item.design}`
-            : `${item.garment} · ${item.design} · ${item.size}`}
+          {getItemMeta(item)}
         </p>
       </div>
 

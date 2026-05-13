@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { getStripeClient } from "./lib/stripeShop.js";
 
+const HOME_GOODS_PREFIX = "home_goods_towel_";
+const TOWEL_PREFIX = "towel_";
+
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) {
@@ -84,6 +87,34 @@ function parseLookupKey(lookupKey) {
     return {
       category: "print",
       garment: "print",
+      design,
+      size: null,
+    };
+  }
+
+  if (lookupKey.startsWith(HOME_GOODS_PREFIX)) {
+    const design = lookupKey.slice(HOME_GOODS_PREFIX.length);
+    if (!design) {
+      return null;
+    }
+
+    return {
+      category: "home_goods",
+      garment: "towel",
+      design,
+      size: null,
+    };
+  }
+
+  if (lookupKey.startsWith(TOWEL_PREFIX)) {
+    const design = lookupKey.slice(TOWEL_PREFIX.length);
+    if (!design) {
+      return null;
+    }
+
+    return {
+      category: "home_goods",
+      garment: "towel",
       design,
       size: null,
     };

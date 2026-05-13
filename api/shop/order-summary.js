@@ -1,5 +1,8 @@
 import { getStripeClient } from "./lib/stripeShop.js";
 
+const HOME_GOODS_PREFIX = "home_goods_towel_";
+const TOWEL_PREFIX = "towel_";
+
 function formatAddress(address) {
   if (!address) {
     return null;
@@ -65,6 +68,13 @@ function parseLookupKey(lookupKey) {
   if (lookupKey.startsWith("print_") || lookupKey.endsWith("_print")) {
     return {
       category: "print",
+      size: null,
+    };
+  }
+
+  if (lookupKey.startsWith(HOME_GOODS_PREFIX) || lookupKey.startsWith(TOWEL_PREFIX)) {
+    return {
+      category: "home_goods",
       size: null,
     };
   }

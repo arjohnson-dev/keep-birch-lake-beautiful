@@ -2,6 +2,8 @@ import Stripe from "stripe";
 
 const ALLOWED_GARMENTS = new Set(["tshirt", "crewneck", "hooded", "print"]);
 const ALLOWED_SIZES = new Set(["s", "m", "l", "xl", "xxl", "xxxl"]);
+const HOME_GOODS_PREFIX = "home_goods_towel_";
+const TOWEL_PREFIX = "towel_";
 const DONATION_LOOKUP_KEY = "donation";
 const DONATION_PRODUCT_ID = "prod_ULYsjKMKX2RRbT";
 
@@ -67,6 +69,34 @@ function parseLookupKey(lookupKey) {
     return {
       category: "print",
       garment: "print",
+      design,
+      size: undefined,
+    };
+  }
+
+  if (lookupKey.startsWith(HOME_GOODS_PREFIX)) {
+    const design = lookupKey.slice(HOME_GOODS_PREFIX.length);
+    if (!design) {
+      return null;
+    }
+
+    return {
+      category: "home_goods",
+      garment: "towel",
+      design,
+      size: undefined,
+    };
+  }
+
+  if (lookupKey.startsWith(TOWEL_PREFIX)) {
+    const design = lookupKey.slice(TOWEL_PREFIX.length);
+    if (!design) {
+      return null;
+    }
+
+    return {
+      category: "home_goods",
+      garment: "towel",
       design,
       size: undefined,
     };
@@ -147,10 +177,12 @@ function normalizePrice(price) {
 }
 
 function sortCatalogItems(items) {
-  const categoryRank = { apparel: 0, print: 1, donation: 2 };
+  const categoryRank = { home_goods: 0, apparel: 1, print: 2, donation: 3 };
 
   return [...items].sort((left, right) => {
-    const categoryDelta = categoryRank[left.category] - categoryRank[right.category];
+    const categoryDelta =
+      (categoryRank[left.category] ?? Number.MAX_SAFE_INTEGER) -
+      (categoryRank[right.category] ?? Number.MAX_SAFE_INTEGER);
     if (categoryDelta !== 0) {
       return categoryDelta;
     }
