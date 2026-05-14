@@ -70,10 +70,17 @@ function downloadReceipt(order) {
 
 function ThankYouView() {
   const { clearCart } = useCart();
-  const [order, setOrder] = useState(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryState, setSummaryState] = useState({
+    errorMessage: "",
+    isLoading: false,
+    order: null,
+    sessionId: null,
+  });
   const sessionId = new URLSearchParams(window.location.search).get("session_id");
+  const isCurrentSummary = summaryState.sessionId === sessionId;
+  const order = isCurrentSummary ? summaryState.order : null;
+  const errorMessage = isCurrentSummary ? summaryState.errorMessage : "";
+  const isLoadingSummary = isCurrentSummary ? summaryState.isLoading : false;
 
   useEffect(() => {
     if (!sessionId) {
@@ -81,8 +88,6 @@ function ThankYouView() {
     }
 
     clearCart();
-    setOrder(null);
-    setErrorMessage("");
 
     let isActive = true;
     let timeoutId;
@@ -92,9 +97,20 @@ function ThankYouView() {
         return;
       }
 
-      setIsLoadingSummary(true);
       if (attempt === 0) {
-        setErrorMessage("");
+        setSummaryState({
+          errorMessage: "",
+          isLoading: true,
+          order: null,
+          sessionId,
+        });
+      } else {
+        setSummaryState((current) => ({
+          errorMessage: "",
+          isLoading: true,
+          order: current.sessionId === sessionId ? current.order : null,
+          sessionId,
+        }));
       }
 
       try {
@@ -107,8 +123,12 @@ function ThankYouView() {
         }
 
         if (payload.ready && payload.order) {
-          setOrder(payload.order);
-          setIsLoadingSummary(false);
+          setSummaryState({
+            errorMessage: "",
+            isLoading: false,
+            order: payload.order,
+            sessionId,
+          });
           return;
         }
 
@@ -120,20 +140,26 @@ function ThankYouView() {
           return;
         }
 
-        setErrorMessage(
-          "Your payment was confirmed, but the order summary is still finalizing. Please refresh this page in a moment.",
-        );
+        setSummaryState({
+          errorMessage:
+            "Your payment was confirmed, but the order summary is still finalizing. Please refresh this page in a moment.",
+          isLoading: false,
+          order: null,
+          sessionId,
+        });
       } catch (error) {
         if (!isActive) {
           return;
         }
 
-        setErrorMessage(
-          error instanceof Error ? error.message : "Unable to load your order summary right now.",
-        );
+        setSummaryState({
+          errorMessage:
+            error instanceof Error ? error.message : "Unable to load your order summary right now.",
+          isLoading: false,
+          order: null,
+          sessionId,
+        });
       }
-
-      setIsLoadingSummary(false);
     };
 
     loadSummary();
