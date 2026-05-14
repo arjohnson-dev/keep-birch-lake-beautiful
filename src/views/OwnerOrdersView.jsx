@@ -5,7 +5,13 @@ import { supabase } from "../utils/supabase.ts";
 import "./OwnerOrdersView.css";
 
 const currencyFormatterCache = new Map();
-const ORDER_FILTERS = ["all", "open", "closed", "donations"];
+const ORDER_TABS = [
+  { key: "all", label: "All orders", countKey: "total" },
+  { key: "open", label: "Open orders", countKey: "open" },
+  { key: "closed", label: "Closed orders", countKey: "closed" },
+  { key: "donations", label: "Donations", countKey: "donations" },
+];
+const CSV_COLUMNS = ["name", "items_ordered", "qty", "phone", "email", "delivery method"];
 
 function formatCurrency(amount, currency) {
   const normalizedCurrency = (currency || "USD").toUpperCase();
@@ -84,6 +90,40 @@ function getShippingAddress(order) {
   return [shippingName, shippingAddress].filter(Boolean).join("\n");
 }
 
+function getShippingMethod(order) {
+  const shippingRate = order.raw_checkout_session?.shipping_cost?.shipping_rate;
+  if (shippingRate && typeof shippingRate === "object" && shippingRate.display_name) {
+    return shippingRate.display_name;
+  }
+
+  return "Not selected";
+}
+
+function getShippingAmount(order) {
+  return order.raw_checkout_session?.shipping_cost?.amount_total ?? 0;
+}
+
+function getCustomerPhone(order) {
+  const session = order.raw_checkout_session ?? {};
+
+  return (
+    session.customer_details?.phone ??
+    session.shipping_details?.phone ??
+    (typeof session.customer === "object" ? session.customer?.phone : null) ??
+    null
+  );
+}
+
+function getPhoneHref(phone) {
+  if (!phone) {
+    return null;
+  }
+
+  const normalizedPhone = String(phone).replace(/[^\d+]/g, "");
+
+  return normalizedPhone ? `tel:${normalizedPhone}` : null;
+}
+
 function formatSizeLabel(size) {
   if (!size) {
     return null;
@@ -106,6 +146,95 @@ function isDonationOrder(order) {
   const items = order.order_items ?? [];
 
   return items.length > 0 && items.every((item) => item.category === "donation");
+}
+
+function getCsvItemName(item) {
+  const sizeLabel = item.category === "apparel" && item.size ? ` - ${formatSizeLabel(item.size)}` : "";
+  return `${item.product_name}${sizeLabel}`;
+}
+
+function getOrderExportRows(order) {
+  return (order.order_items ?? []).map((item) => [
+    order.customer_name || "",
+    getCsvItemName(item),
+    item.quantity ?? 0,
+    getCustomerPhone(order) || "",
+    order.customer_email || "",
+    getShippingMethod(order),
+  ]);
+}
+
+function escapeXmlValue(value) {
+  const stringValue = value === null || value === undefined ? "" : String(value);
+  return stringValue
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getWorksheetName(order, index, usedNames) {
+  const baseName = (order.customer_name || `Customer ${index + 1}`)
+    .replace(/[\u005B\u005D:*?/\\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 31) || `Customer ${index + 1}`;
+  let nextName = baseName;
+  let suffix = 2;
+
+  while (usedNames.has(nextName.toLowerCase())) {
+    const suffixText = ` ${suffix}`;
+    nextName = `${baseName.slice(0, 31 - suffixText.length)}${suffixText}`;
+    suffix += 1;
+  }
+
+  usedNames.add(nextName.toLowerCase());
+  return nextName;
+}
+
+function toWorkbookXml(ordersToExport) {
+  const usedNames = new Set();
+  const worksheets = ordersToExport.map((order, index) => {
+    const rows = [CSV_COLUMNS, ...getOrderExportRows(order)]
+      .map(
+        (row) =>
+          `<Row>${row
+            .map((value) => `<Cell><Data ss:Type="String">${escapeXmlValue(value)}</Data></Cell>`)
+            .join("")}</Row>`,
+      )
+      .join("");
+
+    return `<Worksheet ss:Name="${escapeXmlValue(getWorksheetName(order, index, usedNames))}"><Table>${rows}</Table></Worksheet>`;
+  });
+
+  return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+${worksheets.join("")}
+</Workbook>`;
+}
+
+function downloadWorkbook(filename, ordersToExport) {
+  const xml = toWorkbookXml(ordersToExport);
+  const blob = new Blob([xml], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getOrderWorkbookFilename(order) {
+  const reference = order.stripe_checkout_session_id || order.id || "order";
+  return `kblb-order-${reference}.xls`;
 }
 
 function OwnerOrdersView() {
@@ -304,6 +433,16 @@ function OwnerOrdersView() {
 
     return nonDonationOrders;
   }, [activeFilter, orders]);
+
+  const exportableOrderGroups = useMemo(() => {
+    const nonDonationOrders = orders.filter((order) => !isDonationOrder(order));
+
+    return {
+      all: nonDonationOrders,
+      open: nonDonationOrders.filter((order) => !order.is_closed),
+      closed: nonDonationOrders.filter((order) => order.is_closed),
+    };
+  }, [orders]);
 
   const handleDraftChange = (orderId, field, value) => {
     const nextDraft = {
@@ -546,7 +685,7 @@ function OwnerOrdersView() {
 
       setSaveMessages((current) => ({
         ...current,
-        [orderId]: data.is_closed ? "Marked closed." : "Marked open.",
+        [orderId]: "",
       }));
     }
 
@@ -558,6 +697,15 @@ function OwnerOrdersView() {
       ...current,
       [orderId]: !current[orderId],
     }));
+  };
+
+  const handleExportOrderWorkbook = (order) => {
+    downloadWorkbook(getOrderWorkbookFilename(order), [order]);
+  };
+
+  const handleExportOrderGroupWorkbook = (groupName) => {
+    const ordersToExport = exportableOrderGroups[groupName] ?? [];
+    downloadWorkbook(`kblb-orders-${groupName}.xls`, ordersToExport);
   };
 
   if (isAuthLoading) {
@@ -648,42 +796,54 @@ function OwnerOrdersView() {
         </div>
       </div>
 
-      <div className="owner-orders-stats">
-        <article className="owner-orders-stat surface-card">
-          <span>Total orders</span>
-          <strong>{orderSummary.total}</strong>
-        </article>
-        <article className="owner-orders-stat surface-card">
-          <span>Open orders</span>
-          <strong>{orderSummary.open}</strong>
-        </article>
-        <article className="owner-orders-stat surface-card">
-          <span>Closed orders</span>
-          <strong>{orderSummary.closed}</strong>
-        </article>
-        <article className="owner-orders-stat surface-card">
-          <span>Donations</span>
-          <strong>{orderSummary.donations}</strong>
-        </article>
+      <div className="owner-orders-tabs" role="tablist" aria-label="Order views">
+        {ORDER_TABS.map((tab) => {
+          const isActive = activeFilter === tab.key;
+
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`owner-orders-tab surface-card${isActive ? " is-active" : ""}`}
+              onClick={() => setActiveFilter(tab.key)}
+            >
+              <span>{tab.label}</span>
+              <strong>{orderSummary[tab.countKey]}</strong>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="owner-orders-filters">
-        {ORDER_FILTERS.map((filter) => (
+      <div className="owner-orders-export-actions surface-card">
+        <span>Export workbook</span>
+        <div className="owner-orders-export-actions__buttons">
           <button
-            key={filter}
             type="button"
-            className={`owner-orders-filter${activeFilter === filter ? " is-active" : ""}`}
-            onClick={() => setActiveFilter(filter)}
+            className="owner-orders-secondary"
+            onClick={() => handleExportOrderGroupWorkbook("all")}
+            disabled={exportableOrderGroups.all.length === 0}
           >
-            {filter === "all"
-              ? "All orders"
-              : filter === "open"
-                ? "Open orders"
-                : filter === "closed"
-                  ? "Closed orders"
-                  : "Donations"}
+            All orders
           </button>
-        ))}
+          <button
+            type="button"
+            className="owner-orders-secondary"
+            onClick={() => handleExportOrderGroupWorkbook("open")}
+            disabled={exportableOrderGroups.open.length === 0}
+          >
+            Open orders
+          </button>
+          <button
+            type="button"
+            className="owner-orders-secondary"
+            onClick={() => handleExportOrderGroupWorkbook("closed")}
+            disabled={exportableOrderGroups.closed.length === 0}
+          >
+            Closed orders
+          </button>
+        </div>
       </div>
 
       {ordersError ? <p className="owner-orders-error surface-card">{ordersError}</p> : null}
@@ -703,6 +863,10 @@ function OwnerOrdersView() {
           };
           const isSaving = Boolean(savingOrderIds[order.id]);
           const isStripeInfoExpanded = Boolean(expandedStripeOrderIds[order.id]);
+          const customerPhone = getCustomerPhone(order);
+          const customerPhoneHref = getPhoneHref(customerPhone);
+          const shippingMethod = getShippingMethod(order);
+          const shippingAmount = getShippingAmount(order);
           const itemCount = (order.order_items ?? []).reduce(
             (total, item) => total + (item.quantity ?? 0),
             0,
@@ -713,7 +877,20 @@ function OwnerOrdersView() {
               <div className="owner-orders-card__header">
                 <div>
                   <h3>{order.customer_name || "Customer name unavailable"}</h3>
-                  <p>{order.customer_email || "No email on file"}</p>
+                  <p>
+                    {order.customer_email ? (
+                      <a href={`mailto:${order.customer_email}`}>{order.customer_email}</a>
+                    ) : (
+                      "No email on file"
+                    )}
+                  </p>
+                  <p>
+                    {customerPhoneHref ? (
+                      <a href={customerPhoneHref}>{customerPhone}</a>
+                    ) : (
+                      "No phone on file"
+                    )}
+                  </p>
                 </div>
 
                 <div className="owner-orders-card__total">
@@ -783,6 +960,14 @@ function OwnerOrdersView() {
                   <span>Shipping address</span>
                   <strong className="owner-orders-prewrap">{getShippingAddress(order)}</strong>
                 </p>
+                <p>
+                  <span>Delivery method</span>
+                  <strong>{shippingMethod}</strong>
+                </p>
+                <p>
+                  <span>Shipping amount</span>
+                  <strong>{formatCurrency(shippingAmount, order.currency)}</strong>
+                </p>
                 <label className="owner-orders-checkbox-row">
                   <span>Shipped</span>
                   <input
@@ -834,14 +1019,23 @@ function OwnerOrdersView() {
               </div>
 
               <div className="owner-orders-actions">
-                <button
-                  type="button"
-                  className={`owner-orders-closure-toggle${order.is_closed ? " is-closed" : ""}`}
-                  onClick={() => handleToggleClosed(order.id)}
-                  disabled={isSaving || isDonation}
-                >
-                  {order.is_closed ? "Open This Order" : "Close This Order"}
-                </button>
+                <div className="owner-orders-actions__buttons">
+                  <button
+                    type="button"
+                    className="owner-orders-secondary"
+                    onClick={() => handleExportOrderWorkbook(order)}
+                  >
+                    Export workbook
+                  </button>
+                  <button
+                    type="button"
+                    className={`owner-orders-closure-toggle${order.is_closed ? " is-closed" : ""}`}
+                    onClick={() => handleToggleClosed(order.id)}
+                    disabled={isSaving || isDonation}
+                  >
+                    {order.is_closed ? "Open This Order" : "Close This Order"}
+                  </button>
+                </div>
                 {saveMessages[order.id] ? (
                   <p
                     className={

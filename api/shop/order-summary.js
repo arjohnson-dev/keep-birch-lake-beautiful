@@ -35,6 +35,24 @@ function getShippingAddress(session) {
   return [shippingName, shippingAddress].filter(Boolean).join("\n");
 }
 
+function getShippingMethod(session) {
+  const shippingRate = session.shipping_cost?.shipping_rate;
+  if (shippingRate && typeof shippingRate === "object" && shippingRate.display_name) {
+    return shippingRate.display_name;
+  }
+
+  return null;
+}
+
+function getShippingFulfillmentMethod(session) {
+  const shippingRate = session.shipping_cost?.shipping_rate;
+  if (shippingRate && typeof shippingRate === "object") {
+    return shippingRate.metadata?.fulfillment_method ?? null;
+  }
+
+  return null;
+}
+
 function formatSizeLabel(size) {
   if (!size) {
     return null;
@@ -116,6 +134,7 @@ function toOrderSummary(session, lineItems) {
     placedAt: session.created ? new Date(session.created * 1000).toISOString() : null,
     currency: session.currency ?? "usd",
     subtotalAmount: session.amount_subtotal ?? 0,
+    shippingAmount: session.shipping_cost?.amount_total ?? 0,
     totalAmount: session.amount_total ?? 0,
     checkoutReference: session.id,
     paymentReference:
@@ -123,6 +142,8 @@ function toOrderSummary(session, lineItems) {
         ? session.payment_intent
         : session.payment_intent?.id ?? null,
     shippingAddress: getShippingAddress(session),
+    shippingFulfillmentMethod: getShippingFulfillmentMethod(session),
+    shippingMethod: getShippingMethod(session),
     items: lineItems.data.map(toSummaryItem),
   };
 }
@@ -141,7 +162,9 @@ export default async function handler(req, res) {
 
   try {
     const stripe = getStripeClient();
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["shipping_cost.shipping_rate"],
+    });
 
     if (!session) {
       return res.status(404).json({ error: "Checkout session not found." });

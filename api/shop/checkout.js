@@ -23,6 +23,62 @@ function getAllowedShippingCountries() {
   return [...new Set(parsed)];
 }
 
+function getShippingCurrency() {
+  const raw = process.env.STRIPE_SHIPPING_CURRENCY;
+  return typeof raw === "string" && /^[a-z]{3}$/i.test(raw.trim())
+    ? raw.trim().toLowerCase()
+    : "usd";
+}
+
+function getShippingAmountCents() {
+  const amount = Number(process.env.STRIPE_SHIPPING_AMOUNT_CENTS ?? 2000);
+  if (!Number.isInteger(amount) || amount < 0) {
+    return 2000;
+  }
+
+  return amount;
+}
+
+function getInlineShippingRate(displayName, amount, currency, fulfillmentMethod) {
+  return {
+    shipping_rate_data: {
+      type: "fixed_amount",
+      fixed_amount: {
+        amount,
+        currency,
+      },
+      display_name: displayName,
+      metadata: {
+        fulfillment_method: fulfillmentMethod,
+      },
+    },
+  };
+}
+
+function getShippingOptions() {
+  const currency = getShippingCurrency();
+  const localDropoffLabel =
+    process.env.STRIPE_LOCAL_DROPOFF_LABEL?.trim() || "Local drop-off";
+  const manualShippingLabel =
+    process.env.STRIPE_SHIPPING_LABEL?.trim() || "Ship order";
+  const localDropoffRateId = process.env.STRIPE_LOCAL_DROPOFF_SHIPPING_RATE_ID?.trim();
+  const manualShippingRateId = process.env.STRIPE_SHIPPING_RATE_ID?.trim();
+
+  const localDropoffOption = localDropoffRateId
+    ? { shipping_rate: localDropoffRateId }
+    : getInlineShippingRate(localDropoffLabel, 0, currency, "local_dropoff");
+  const manualShippingOption = manualShippingRateId
+    ? { shipping_rate: manualShippingRateId }
+    : getInlineShippingRate(
+        manualShippingLabel,
+        getShippingAmountCents(),
+        currency,
+        "manual_shipping",
+      );
+
+  return [localDropoffOption, manualShippingOption];
+}
+
 function parseRequestBody(req) {
   if (req.body && typeof req.body === "object") {
     return req.body;
@@ -82,6 +138,9 @@ export default async function handler(req, res) {
       cancel_url: cancelUrl,
       client_reference_id: clientReferenceId,
       customer_creation: "always",
+      phone_number_collection: {
+        enabled: true,
+      },
       allow_promotion_codes: false,
       billing_address_collection: "required",
       shipping_address_collection: donationOnlyCheckout
@@ -89,6 +148,7 @@ export default async function handler(req, res) {
         : {
             allowed_countries: allowedShippingCountries,
           },
+      shipping_options: donationOnlyCheckout ? undefined : getShippingOptions(),
     });
 
     return res.status(200).json({

@@ -193,6 +193,20 @@ function formatMoney(cents, currency) {
   }).format((cents ?? 0) / 100);
 }
 
+function getShippingRate(session) {
+  const shippingRate = session.shipping_cost?.shipping_rate;
+  return shippingRate && typeof shippingRate === "object" ? shippingRate : null;
+}
+
+function isManualShippingSession(session) {
+  const shippingRate = getShippingRate(session);
+  if (shippingRate?.metadata?.fulfillment_method === "manual_shipping") {
+    return true;
+  }
+
+  return /^ship\b/i.test(shippingRate?.display_name ?? "");
+}
+
 async function sendOrderConfirmationEmail({ customerEmail, customerName, order, orderItems }) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.ORDER_CONFIRMATION_FROM_EMAIL;
@@ -208,11 +222,15 @@ async function sendOrderConfirmationEmail({ customerEmail, customerName, order, 
       return `<li>${item.product_name} (${variant}) x ${item.quantity} - ${formatMoney(item.line_total, order.currency)}</li>`;
     })
     .join("");
+  const shippingNoteHtml = isManualShippingSession(order.raw_checkout_session)
+    ? "<p>We will contact you within the next 24 hours to confirm your shipping method.</p>"
+    : "";
 
   const html = `
     <h2>Thanks for your order${customerName ? `, ${customerName}` : ""}!</h2>
     <p>Order reference: <strong>${order.stripe_checkout_session_id}</strong></p>
     <p>Total: <strong>${formatMoney(order.total_amount, order.currency)}</strong></p>
+    ${shippingNoteHtml}
     <h3>Items</h3>
     <ul>${lineItemsHtml}</ul>
   `;
@@ -335,7 +353,10 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true, ignored: event.type });
     }
 
-    const session = event.data.object;
+    const eventSession = event.data.object;
+    const session = await stripe.checkout.sessions.retrieve(eventSession.id, {
+      expand: ["shipping_cost.shipping_rate"],
+    });
 
     if (!session.currency) {
       throw new Error(`Checkout session '${session.id}' is missing currency.`);

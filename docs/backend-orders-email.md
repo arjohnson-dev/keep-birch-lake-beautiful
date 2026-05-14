@@ -28,6 +28,19 @@ Behavior:
 - On webhook retries / existing orders, it skips email to reduce duplicates.
 - Email failures are logged and do not block order persistence.
 
+## Optional Checkout shipping variables
+
+Merchandise checkouts show a free local drop-off option first and a ship-order option second. By default, the shipping option is labeled `Ship order` and charges a flat `$20.00`.
+
+- `STRIPE_LOCAL_DROPOFF_LABEL`
+- `STRIPE_LOCAL_DROPOFF_SHIPPING_RATE_ID`
+- `STRIPE_SHIPPING_LABEL`
+- `STRIPE_SHIPPING_AMOUNT_CENTS`
+- `STRIPE_SHIPPING_CURRENCY`
+- `STRIPE_SHIPPING_RATE_ID`
+
+Set `STRIPE_SHIPPING_AMOUNT_CENTS` if you need to override the default `2000` cent shipping amount. Set `STRIPE_SHIPPING_RATE_ID` or `STRIPE_LOCAL_DROPOFF_SHIPPING_RATE_ID` to use pre-created Stripe Shipping Rates instead of inline rates.
+
 ## Stripe webhook config
 
 Set destination to:

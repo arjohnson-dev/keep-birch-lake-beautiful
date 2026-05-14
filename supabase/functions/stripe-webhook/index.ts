@@ -251,7 +251,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const session = event.data.object as Stripe.Checkout.Session;
+    const eventSession = event.data.object as Stripe.Checkout.Session;
+    const session = await stripe.checkout.sessions.retrieve(eventSession.id, {
+      expand: ["shipping_cost.shipping_rate"],
+    });
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
       limit: 100,
       expand: ["data.price", "data.price.product"],

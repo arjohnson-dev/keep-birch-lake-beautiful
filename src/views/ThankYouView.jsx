@@ -24,7 +24,21 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function isManualShippingOrder(order) {
+  if (order.shippingFulfillmentMethod === "manual_shipping") {
+    return true;
+  }
+
+  return /^ship\b/i.test(order.shippingMethod || "");
+}
+
 function buildReceiptText(order) {
+  const shippingNote = isManualShippingOrder(order)
+    ? [
+        "",
+        "Shipping note: We will contact you within the next 24 hours to confirm your shipping method.",
+      ]
+    : [];
   const lines = [
     "KEEP BIRCH LAKE BEAUTIFUL",
     "Order Summary",
@@ -35,6 +49,8 @@ function buildReceiptText(order) {
     "",
     "Ship to:",
     order.shippingAddress || "No shipping address captured",
+    `Delivery method: ${order.shippingMethod || "Not selected"}`,
+    ...shippingNote,
     "",
     "Items:",
     ...order.items.map((item) => {
@@ -45,6 +61,7 @@ function buildReceiptText(order) {
     }),
     "",
     `Subtotal: ${formatCurrency(order.subtotalAmount, order.currency)}`,
+    `Shipping: ${formatCurrency(order.shippingAmount, order.currency)}`,
     `Total: ${formatCurrency(order.totalAmount, order.currency)}`,
     "",
     "Thank you for supporting Birch Lake.",
@@ -221,7 +238,17 @@ function ThankYouView() {
                   {order.shippingAddress || "No shipping address captured"}
                 </strong>
               </div>
+              <div className="thank-you-summary-row">
+                <span className="thank-you-label">Delivery method</span>
+                <strong>{order.shippingMethod || "Not selected"}</strong>
+              </div>
             </div>
+
+            {isManualShippingOrder(order) ? (
+              <p className="thank-you-note">
+                We will contact you within the next 24 hours to confirm your shipping method.
+              </p>
+            ) : null}
 
             <div className="thank-you-receipt__table">
               <div className="thank-you-receipt__table-head">
@@ -259,6 +286,10 @@ function ThankYouView() {
                 <strong>{formatCurrency(order.subtotalAmount, order.currency)}</strong>
               </p>
               <p>
+                <span>Shipping</span>
+                <strong>{formatCurrency(order.shippingAmount, order.currency)}</strong>
+              </p>
+              <p>
                 <span>Total paid</span>
                 <strong className="thank-you-total">
                   {formatCurrency(order.totalAmount, order.currency)}
@@ -270,12 +301,12 @@ function ThankYouView() {
               A confirmation email should arrive shortly if one was provided at checkout.
             </p>
             <button
-                type="button"
-                className="thank-you-download-button"
-                onClick={() => downloadReceipt(order)}
-              >
-                Download Order Summary
-              </button>
+              type="button"
+              className="thank-you-download-button"
+              onClick={() => downloadReceipt(order)}
+            >
+              Download Order Summary
+            </button>
           </article>
         </>
       ) : null}
