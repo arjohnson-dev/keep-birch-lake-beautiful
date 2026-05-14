@@ -19,6 +19,11 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
+const ALLOWED_GARMENTS = new Set(["tshirt", "crewneck", "hooded", "print"]);
+const ALLOWED_SIZES = new Set(["s", "m", "l", "xl", "xxl", "xxxl"]);
+const HOME_GOODS_PREFIX = "home_goods_towel_";
+const TOWEL_PREFIX = "towel_";
+
 const REQUIRED_ENV_VARS = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
@@ -70,6 +75,36 @@ function parseLookupKey(lookupKey: string) {
     return {
       category: "print",
       garment: "print",
+      design,
+      size: null,
+    };
+  }
+
+  if (lookupKey.startsWith(HOME_GOODS_PREFIX)) {
+    const design = lookupKey.slice(HOME_GOODS_PREFIX.length);
+
+    if (!design) {
+      return null;
+    }
+
+    return {
+      category: "home_goods",
+      garment: "towel",
+      design,
+      size: null,
+    };
+  }
+
+  if (lookupKey.startsWith(TOWEL_PREFIX)) {
+    const design = lookupKey.slice(TOWEL_PREFIX.length);
+
+    if (!design) {
+      return null;
+    }
+
+    return {
+      category: "home_goods",
+      garment: "towel",
       design,
       size: null,
     };
