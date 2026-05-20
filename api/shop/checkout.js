@@ -57,16 +57,10 @@ function getInlineShippingRate(displayName, amount, currency, fulfillmentMethod)
 
 function getShippingOptions() {
   const currency = getShippingCurrency();
-  const localDropoffLabel =
-    process.env.STRIPE_LOCAL_DROPOFF_LABEL?.trim() || "Local drop-off";
   const manualShippingLabel =
     process.env.STRIPE_SHIPPING_LABEL?.trim() || "Ship order";
-  const localDropoffRateId = process.env.STRIPE_LOCAL_DROPOFF_SHIPPING_RATE_ID?.trim();
   const manualShippingRateId = process.env.STRIPE_SHIPPING_RATE_ID?.trim();
 
-  const localDropoffOption = localDropoffRateId
-    ? { shipping_rate: localDropoffRateId }
-    : getInlineShippingRate(localDropoffLabel, 0, currency, "local_dropoff");
   const manualShippingOption = manualShippingRateId
     ? { shipping_rate: manualShippingRateId }
     : getInlineShippingRate(
@@ -76,7 +70,7 @@ function getShippingOptions() {
         "manual_shipping",
       );
 
-  return [localDropoffOption, manualShippingOption];
+  return [manualShippingOption];
 }
 
 function parseRequestBody(req) {

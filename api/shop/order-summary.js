@@ -41,16 +41,33 @@ function getShippingMethod(session) {
     return shippingRate.display_name;
   }
 
+  const shippingAmount = session.shipping_cost?.amount_total ?? 0;
+  if (shippingAmount > 0) {
+    return process.env.STRIPE_SHIPPING_LABEL?.trim() || "Ship order";
+  }
+
+  if (session.shipping_details) {
+    return process.env.STRIPE_LOCAL_DROPOFF_LABEL?.trim() || "Local drop-off";
+  }
+
   return null;
 }
 
 function getShippingFulfillmentMethod(session) {
   const shippingRate = session.shipping_cost?.shipping_rate;
   if (shippingRate && typeof shippingRate === "object") {
-    return shippingRate.metadata?.fulfillment_method ?? null;
+    const fulfillmentMethod = shippingRate.metadata?.fulfillment_method;
+    if (fulfillmentMethod) {
+      return fulfillmentMethod;
+    }
   }
 
-  return null;
+  const shippingAmount = session.shipping_cost?.amount_total ?? 0;
+  if (shippingAmount > 0) {
+    return "manual_shipping";
+  }
+
+  return session.shipping_details ? "local_dropoff" : null;
 }
 
 function formatSizeLabel(size) {

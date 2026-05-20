@@ -30,16 +30,16 @@ Behavior:
 
 ## Optional Checkout shipping variables
 
-Merchandise checkouts show a free local drop-off option first and a ship-order option second. By default, the shipping option is labeled `Ship order` and charges a flat `$20.00`.
+Merchandise checkouts show a paid ship-order option. By default, the shipping option is labeled `Ship order` and charges a flat `$20.00`.
 
-- `STRIPE_LOCAL_DROPOFF_LABEL`
-- `STRIPE_LOCAL_DROPOFF_SHIPPING_RATE_ID`
+Free local drop-off is intentionally not offered in the hosted Stripe Checkout flow. Stripe-hosted Checkout cannot dynamically hide or show shipping options based on the shipping address entered during Checkout; address-based local drop-off eligibility requires an embedded Checkout or custom address-validation flow.
+
 - `STRIPE_SHIPPING_LABEL`
 - `STRIPE_SHIPPING_AMOUNT_CENTS`
 - `STRIPE_SHIPPING_CURRENCY`
 - `STRIPE_SHIPPING_RATE_ID`
 
-Set `STRIPE_SHIPPING_AMOUNT_CENTS` if you need to override the default `2000` cent shipping amount. Set `STRIPE_SHIPPING_RATE_ID` or `STRIPE_LOCAL_DROPOFF_SHIPPING_RATE_ID` to use pre-created Stripe Shipping Rates instead of inline rates.
+Set `STRIPE_SHIPPING_AMOUNT_CENTS` if you need to override the default `2000` cent shipping amount. Set `STRIPE_SHIPPING_RATE_ID` to use a pre-created Stripe Shipping Rate instead of an inline rate.
 
 ## Stripe webhook config
 

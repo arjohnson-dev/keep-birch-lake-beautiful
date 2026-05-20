@@ -4,6 +4,7 @@ const MAX_SLIDES = 8;
 const FEATURED_HERO_IMAGE = "towels.jpg";
 const SHOP_IMAGE_FILENAMES = [
   FEATURED_HERO_IMAGE,
+  "ducks.jpg",
   "crewneck_seagull.jpg",
   "crewneck_trout.jpg",
   "crewneck_turtle.jpg",

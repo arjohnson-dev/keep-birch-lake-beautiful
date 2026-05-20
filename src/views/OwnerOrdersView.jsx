@@ -91,16 +91,29 @@ function getShippingAddress(order) {
 }
 
 function getShippingMethod(order) {
+  if (order.shipping_method) {
+    return order.shipping_method;
+  }
+
   const shippingRate = order.raw_checkout_session?.shipping_cost?.shipping_rate;
   if (shippingRate && typeof shippingRate === "object" && shippingRate.display_name) {
     return shippingRate.display_name;
+  }
+
+  const shippingAmount = getShippingAmount(order);
+  if (shippingAmount > 0) {
+    return "Ship order";
+  }
+
+  if (order.raw_checkout_session?.shipping_details) {
+    return "Local drop-off";
   }
 
   return "Not selected";
 }
 
 function getShippingAmount(order) {
-  return order.raw_checkout_session?.shipping_cost?.amount_total ?? 0;
+  return order.shipping_amount ?? order.raw_checkout_session?.shipping_cost?.amount_total ?? 0;
 }
 
 function getCustomerPhone(order) {
@@ -343,6 +356,9 @@ function OwnerOrdersView() {
           currency,
           subtotal_amount,
           total_amount,
+          shipping_amount,
+          shipping_method,
+          shipping_fulfillment_method,
           status,
           is_closed,
           notes,
@@ -525,6 +541,9 @@ function OwnerOrdersView() {
         currency,
         subtotal_amount,
         total_amount,
+        shipping_amount,
+        shipping_method,
+        shipping_fulfillment_method,
         status,
         is_closed,
         notes,

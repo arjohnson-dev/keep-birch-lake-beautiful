@@ -201,6 +201,49 @@ function mapLineItem(item: Stripe.LineItem, orderId: string): OrderItemInsert | 
   };
 }
 
+function getShippingRate(session: Stripe.Checkout.Session) {
+  const shippingRate = session.shipping_cost?.shipping_rate;
+  return shippingRate && typeof shippingRate === "object" ? shippingRate : null;
+}
+
+function getShippingAmount(session: Stripe.Checkout.Session) {
+  return session.shipping_cost?.amount_total ?? 0;
+}
+
+function getShippingMethod(session: Stripe.Checkout.Session) {
+  const shippingRate = getShippingRate(session);
+  if (shippingRate?.display_name) {
+    return shippingRate.display_name;
+  }
+
+  const shippingAmount = getShippingAmount(session);
+  if (shippingAmount > 0) {
+    return Deno.env.get("STRIPE_SHIPPING_LABEL")?.trim() || "Ship order";
+  }
+
+  if (session.shipping_details) {
+    return Deno.env.get("STRIPE_LOCAL_DROPOFF_LABEL")?.trim() ||
+      "Local drop-off";
+  }
+
+  return null;
+}
+
+function getShippingFulfillmentMethod(session: Stripe.Checkout.Session) {
+  const shippingRate = getShippingRate(session);
+  const fulfillmentMethod = shippingRate?.metadata?.fulfillment_method;
+  if (fulfillmentMethod) {
+    return fulfillmentMethod;
+  }
+
+  const shippingAmount = getShippingAmount(session);
+  if (shippingAmount > 0) {
+    return "manual_shipping";
+  }
+
+  return session.shipping_details ? "local_dropoff" : null;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -286,6 +329,9 @@ Deno.serve(async (req) => {
       currency: session.currency,
       subtotal_amount: session.amount_subtotal ?? 0,
       total_amount: session.amount_total ?? 0,
+      shipping_amount: getShippingAmount(session),
+      shipping_method: getShippingMethod(session),
+      shipping_fulfillment_method: getShippingFulfillmentMethod(session),
       status: "paid",
       raw_checkout_session: session,
     };

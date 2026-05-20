@@ -198,12 +198,48 @@ function getShippingRate(session) {
   return shippingRate && typeof shippingRate === "object" ? shippingRate : null;
 }
 
-function isManualShippingSession(session) {
+function getShippingAmount(session) {
+  return session.shipping_cost?.amount_total ?? 0;
+}
+
+function getShippingMethod(session) {
   const shippingRate = getShippingRate(session);
-  if (shippingRate?.metadata?.fulfillment_method === "manual_shipping") {
+  if (shippingRate?.display_name) {
+    return shippingRate.display_name;
+  }
+
+  const shippingAmount = getShippingAmount(session);
+  if (shippingAmount > 0) {
+    return process.env.STRIPE_SHIPPING_LABEL?.trim() || "Ship order";
+  }
+
+  if (session.shipping_details) {
+    return process.env.STRIPE_LOCAL_DROPOFF_LABEL?.trim() || "Local drop-off";
+  }
+
+  return null;
+}
+
+function getShippingFulfillmentMethod(session) {
+  const shippingRate = getShippingRate(session);
+  if (shippingRate?.metadata?.fulfillment_method) {
+    return shippingRate.metadata.fulfillment_method;
+  }
+
+  const shippingAmount = getShippingAmount(session);
+  if (shippingAmount > 0) {
+    return "manual_shipping";
+  }
+
+  return session.shipping_details ? "local_dropoff" : null;
+}
+
+function isManualShippingSession(session) {
+  if (getShippingFulfillmentMethod(session) === "manual_shipping") {
     return true;
   }
 
+  const shippingRate = getShippingRate(session);
   return /^ship\b/i.test(shippingRate?.display_name ?? "");
 }
 
@@ -273,6 +309,9 @@ async function persistOrderRecord({ supabase, session, lineItems }) {
     currency: session.currency,
     subtotal_amount: session.amount_subtotal ?? 0,
     total_amount: session.amount_total ?? 0,
+    shipping_amount: getShippingAmount(session),
+    shipping_method: getShippingMethod(session),
+    shipping_fulfillment_method: getShippingFulfillmentMethod(session),
     status: "paid",
     raw_checkout_session: session,
   };
