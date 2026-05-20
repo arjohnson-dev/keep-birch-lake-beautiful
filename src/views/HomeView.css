@@ -156,7 +156,19 @@
 }
 
 .instagram-feed-shell {
-  overflow: visible;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.instagram-feed-shell > #curator-feed-default-feed-layout,
+.instagram-feed-shell .crt-widget,
+.instagram-feed-shell .crt-feed {
+  max-width: 100%;
+}
+
+.instagram-feed-shell .crt-widget {
+  overflow-x: clip;
 }
 
 @media (max-width: 900px) {
