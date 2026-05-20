@@ -82,6 +82,22 @@
   min-height: 8rem;
 }
 
+.contact-form-error {
+  margin-top: -1rem;
+  color: #b42318;
+  font-size: 0.95rem;
+}
+
+.contact-form-success {
+  align-content: start;
+}
+
+.contact-form-success p {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
 .contact-form button {
   width: fit-content;
   padding: 0.9rem 1.25rem;
@@ -90,6 +106,11 @@
   background: var(--color-button-primary);
   color: var(--color-text);
   cursor: pointer;
+}
+
+.contact-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 @media (max-width: 940px) {
