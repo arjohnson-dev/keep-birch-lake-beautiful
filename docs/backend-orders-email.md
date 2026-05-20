@@ -5,6 +5,7 @@
 `POST /api/shop/webhook`
 
 This endpoint now:
+
 - verifies Stripe signature (`STRIPE_WEBHOOK_SECRET`)
 - handles `checkout.session.completed`
 - upserts `public.orders` by `stripe_checkout_session_id`
@@ -24,22 +25,28 @@ This endpoint now:
 - `ORDER_CONFIRMATION_FROM_EMAIL`
 
 Behavior:
+
 - If optional email vars are present, webhook sends an order confirmation email for newly created orders.
 - On webhook retries / existing orders, it skips email to reduce duplicates.
 - Email failures are logged and do not block order persistence.
 
 ## Optional Checkout shipping variables
 
-Merchandise checkouts show a paid ship-order option. By default, the shipping option is labeled `Ship order` and charges a flat `$20.00`.
+Merchandise checkouts show two shipping options in Stripe Checkout:
 
-Free local drop-off is intentionally not offered in the hosted Stripe Checkout flow. Stripe-hosted Checkout cannot dynamically hide or show shipping options based on the shipping address entered during Checkout; address-based local drop-off eligibility requires an embedded Checkout or custom address-validation flow.
+- paid shipping (default label `Ship order`, default amount `$20.00`)
+- free local drop-off (default label `Local drop-off (Birch Lake area only)`)
+
+Note: local drop-off is only available to customers located near Birch Lake (Porter Township, MI).
 
 - `STRIPE_SHIPPING_LABEL`
 - `STRIPE_SHIPPING_AMOUNT_CENTS`
 - `STRIPE_SHIPPING_CURRENCY`
 - `STRIPE_SHIPPING_RATE_ID`
+- `STRIPE_LOCAL_DROPOFF_LABEL`
+- `STRIPE_LOCAL_DROPOFF_RATE_ID`
 
-Set `STRIPE_SHIPPING_AMOUNT_CENTS` if you need to override the default `2000` cent shipping amount. Set `STRIPE_SHIPPING_RATE_ID` to use a pre-created Stripe Shipping Rate instead of an inline rate.
+Set `STRIPE_SHIPPING_AMOUNT_CENTS` if you need to override the default `2000` cent shipping amount. Set `STRIPE_SHIPPING_RATE_ID` or `STRIPE_LOCAL_DROPOFF_RATE_ID` to use pre-created Stripe Shipping Rates instead of inline rates.
 
 ## Stripe webhook config
 

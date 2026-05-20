@@ -39,7 +39,12 @@ function getShippingAmountCents() {
   return amount;
 }
 
-function getInlineShippingRate(displayName, amount, currency, fulfillmentMethod) {
+function getInlineShippingRate(
+  displayName,
+  amount,
+  currency,
+  fulfillmentMethod,
+) {
   return {
     shipping_rate_data: {
       type: "fixed_amount",
@@ -60,6 +65,10 @@ function getShippingOptions() {
   const manualShippingLabel =
     process.env.STRIPE_SHIPPING_LABEL?.trim() || "Ship order";
   const manualShippingRateId = process.env.STRIPE_SHIPPING_RATE_ID?.trim();
+  const localDropoffLabel =
+    process.env.STRIPE_LOCAL_DROPOFF_LABEL?.trim() ||
+    "Local drop-off (Birch Lake area only)";
+  const localDropoffRateId = process.env.STRIPE_LOCAL_DROPOFF_RATE_ID?.trim();
 
   const manualShippingOption = manualShippingRateId
     ? { shipping_rate: manualShippingRateId }
@@ -70,7 +79,11 @@ function getShippingOptions() {
         "manual_shipping",
       );
 
-  return [manualShippingOption];
+  const localDropoffOption = localDropoffRateId
+    ? { shipping_rate: localDropoffRateId }
+    : getInlineShippingRate(localDropoffLabel, 0, currency, "local_dropoff");
+
+  return [manualShippingOption, localDropoffOption];
 }
 
 function parseRequestBody(req) {
@@ -143,6 +156,14 @@ export default async function handler(req, res) {
             allowed_countries: allowedShippingCountries,
           },
       shipping_options: donationOnlyCheckout ? undefined : getShippingOptions(),
+      custom_text: donationOnlyCheckout
+        ? undefined
+        : {
+            shipping_address: {
+              message:
+                "IMPORTANT: Local drop-off is only available near Birch Lake (Porter Township, MI).",
+            },
+          },
     });
 
     return res.status(200).json({
