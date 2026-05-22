@@ -209,10 +209,10 @@ function AboutView() {
               </p>
               <p>
                 You can call him at <a href="tel:+15742984067" target="_blank" rel="noopener noreferrer">
-  (574) 298-4067
-</a>, or find him on <a href="https://www.facebook.com/coy.jankowski" target="_blank" rel="noopener noreferrer">
-  Facebook
-</a>, where you can message him about questions or commisions.
+                  (574) 298-4067
+                </a>, or find him on <a href="https://www.facebook.com/coy.jankowski" target="_blank" rel="noopener noreferrer">
+                  Facebook
+                </a>, where you can message him about questions or commisions.
               </p>
             </div>
           </div>
