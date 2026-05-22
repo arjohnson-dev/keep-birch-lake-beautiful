@@ -11,7 +11,7 @@ const ORDER_TABS = [
   { key: "closed", label: "Closed orders", countKey: "closed" },
   { key: "donations", label: "Donations", countKey: "donations" },
 ];
-const CSV_COLUMNS = ["name", "items_ordered", "qty", "phone", "email", "delivery method"];
+const CSV_COLUMNS = ["name", "item", "qty", "phone", "email", "delivery method"];
 
 function formatCurrency(amount, currency) {
   const normalizedCurrency = (currency || "USD").toUpperCase();
@@ -186,39 +186,15 @@ function escapeXmlValue(value) {
     .replace(/"/g, "&quot;");
 }
 
-function getWorksheetName(order, index, usedNames) {
-  const baseName = (order.customer_name || `Customer ${index + 1}`)
-    .replace(/[\u005B\u005D:*?/\\]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 31) || `Customer ${index + 1}`;
-  let nextName = baseName;
-  let suffix = 2;
-
-  while (usedNames.has(nextName.toLowerCase())) {
-    const suffixText = ` ${suffix}`;
-    nextName = `${baseName.slice(0, 31 - suffixText.length)}${suffixText}`;
-    suffix += 1;
-  }
-
-  usedNames.add(nextName.toLowerCase());
-  return nextName;
-}
-
 function toWorkbookXml(ordersToExport) {
-  const usedNames = new Set();
-  const worksheets = ordersToExport.map((order, index) => {
-    const rows = [CSV_COLUMNS, ...getOrderExportRows(order)]
-      .map(
-        (row) =>
-          `<Row>${row
-            .map((value) => `<Cell><Data ss:Type="String">${escapeXmlValue(value)}</Data></Cell>`)
-            .join("")}</Row>`,
-      )
-      .join("");
-
-    return `<Worksheet ss:Name="${escapeXmlValue(getWorksheetName(order, index, usedNames))}"><Table>${rows}</Table></Worksheet>`;
-  });
+  const rows = [CSV_COLUMNS, ...ordersToExport.flatMap((order) => getOrderExportRows(order))]
+    .map(
+      (row) =>
+        `<Row>${row
+          .map((value) => `<Cell><Data ss:Type="String">${escapeXmlValue(value)}</Data></Cell>`)
+          .join("")}</Row>`,
+    )
+    .join("");
 
   return `<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -227,7 +203,7 @@ function toWorkbookXml(ordersToExport) {
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:html="http://www.w3.org/TR/REC-html40">
-${worksheets.join("")}
+<Worksheet ss:Name="Orders"><Table>${rows}</Table></Worksheet>
 </Workbook>`;
 }
 
