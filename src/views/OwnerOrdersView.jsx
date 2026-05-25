@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiChevronDown, HiChevronUp } from "react-icons/hi2";
+import { HiChevronDown, HiChevronUp, HiPlusSmall } from "react-icons/hi2";
 import { handleAppLinkClick } from "../lib/navigation.js";
+import { getSessionCatalog } from "../lib/shopCatalog.js";
 import { supabase } from "../utils/supabase.ts";
 import "./OwnerOrdersView.css";
 
@@ -12,6 +13,14 @@ const ORDER_TABS = [
   { key: "donations", label: "Donations", countKey: "donations" },
 ];
 const CSV_COLUMNS = ["name", "item", "qty", "phone", "email", "delivery method"];
+const PAYMENT_STATUS_OPTIONS = [
+  { value: "unpaid", label: "Unpaid" },
+  { value: "partial_payment", label: "Partial payment" },
+  { value: "paid", label: "Paid" },
+];
+const PAYMENT_STATUS_LABELS = Object.fromEntries(
+  PAYMENT_STATUS_OPTIONS.map((status) => [status.value, status.label]),
+);
 
 function formatCurrency(amount, currency) {
   const normalizedCurrency = (currency || "USD").toUpperCase();
@@ -41,53 +50,7 @@ function formatDateTime(value) {
 }
 
 function getPaymentSummary(order) {
-  if (order.status === "refunded") {
-    return "false";
-  }
-
-  if (order.status === "pending") {
-    return "false";
-  }
-
-  if (order.status === "canceled") {
-    return order.stripe_payment_intent_id ? "true" : "false";
-  }
-
-  return order.stripe_payment_intent_id ? "true" : "false";
-}
-
-function formatAddress(address) {
-  if (!address) {
-    return null;
-  }
-
-  return [
-    address.line1,
-    address.line2,
-    [address.city, address.state].filter(Boolean).join(", "),
-    [address.postal_code, address.country].filter(Boolean).join(" "),
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function getShippingAddress(order) {
-  const session = order.raw_checkout_session ?? {};
-  const shippingName =
-    session.shipping_details?.name ??
-    session.customer_details?.name ??
-    order.customer_name ??
-    null;
-  const shippingAddress =
-    formatAddress(session.shipping_details?.address) ??
-    formatAddress(session.shipping?.address) ??
-    formatAddress(session.customer_details?.address);
-
-  if (!shippingName && !shippingAddress) {
-    return "No shipping address captured";
-  }
-
-  return [shippingName, shippingAddress].filter(Boolean).join("\n");
+  return PAYMENT_STATUS_LABELS[order.payment_status] ?? (order.paid ? "Paid" : "Unpaid");
 }
 
 function getShippingMethod(order) {
@@ -133,8 +96,41 @@ function getPhoneHref(phone) {
   }
 
   const normalizedPhone = String(phone).replace(/[^\d+]/g, "");
-
   return normalizedPhone ? `tel:${normalizedPhone}` : null;
+}
+
+function formatAddress(address) {
+  if (!address) {
+    return null;
+  }
+
+  return [
+    address.line1,
+    address.line2,
+    [address.city, address.state].filter(Boolean).join(", "),
+    [address.postal_code, address.country].filter(Boolean).join(" "),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function getShippingAddress(order) {
+  const session = order.raw_checkout_session ?? {};
+  const shippingName =
+    session.shipping_details?.name ??
+    session.customer_details?.name ??
+    order.customer_name ??
+    null;
+  const shippingAddress =
+    formatAddress(session.shipping_details?.address) ??
+    formatAddress(session.shipping?.address) ??
+    formatAddress(session.customer_details?.address);
+
+  if (!shippingName && !shippingAddress) {
+    return "No shipping address captured";
+  }
+
+  return [shippingName, shippingAddress].filter(Boolean).join("\n");
 }
 
 function formatSizeLabel(size) {
@@ -226,6 +222,157 @@ function getOrderWorkbookFilename(order) {
   return `kblb-order-${reference}.xls`;
 }
 
+function hasStripeInfo(order) {
+  return Boolean(
+    (order.stripe_checkout_session_id && !String(order.stripe_checkout_session_id).startsWith("manual_")) ||
+      order.stripe_payment_intent_id,
+  );
+}
+
+function trimToNull(value) {
+  const trimmed = String(value ?? "").trim();
+  return trimmed || null;
+}
+
+function getDollarInputValue(cents) {
+  return (cents / 100).toFixed(2);
+}
+
+function parseDollarAmount(value) {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(parsed * 100));
+}
+
+function formatPhoneNumber(value) {
+  const digits = String(value ?? "").replace(/\D/g, "").slice(0, 10);
+
+  if (digits.length <= 3) {
+    return digits ? `(${digits}` : "";
+  }
+
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  }
+
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function getAddressObject(order) {
+  const session = order.raw_checkout_session ?? {};
+  return (
+    session.shipping_details?.address ??
+    session.shipping?.address ??
+    session.customer_details?.address ??
+    {}
+  );
+}
+
+function getEditableItemLabel(item) {
+  return `${item.productName}${item.category === "apparel" && item.size ? ` - ${formatSizeLabel(item.size)}` : ""}`;
+}
+
+function getCatalogItemLabel(item) {
+  return [
+    item.name,
+    item.category === "apparel" && item.size ? item.size.toUpperCase() : null,
+    item.inStock ? null : "Out of stock",
+  ].filter(Boolean).join(" - ");
+}
+
+function toDraftItem(item, currency) {
+  return {
+    draftId: item.id ?? item.lookup_key,
+    lookupKey: item.lookup_key,
+    stripePriceId: item.stripe_price_id,
+    productName: item.product_name,
+    category: item.category,
+    garment: item.garment,
+    design: item.design,
+    size: item.size ?? null,
+    quantity: item.quantity ?? 1,
+    unitAmount: item.unit_amount ?? 0,
+    lineTotal: item.line_total ?? (item.unit_amount ?? 0) * (item.quantity ?? 1),
+    currency,
+  };
+}
+
+function toCatalogDraftItem(item, quantity) {
+  return {
+    draftId: `${item.lookupKey}-${Date.now()}`,
+    lookupKey: item.lookupKey,
+    stripePriceId: item.priceId,
+    productName: item.name,
+    category: item.category,
+    garment: item.garment,
+    design: item.design,
+    size: item.size ?? null,
+    quantity,
+    unitAmount: item.amount,
+    lineTotal: item.amount * quantity,
+    currency: item.currency,
+  };
+}
+
+function getOrderDraft(order) {
+  const address = getAddressObject(order);
+  const phone = getCustomerPhone(order);
+  return {
+    shipped: order.status === "fulfilled" ? "true" : "false",
+    isClosed: order.is_closed ? "true" : "false",
+    notes: order.notes ?? "",
+    paymentStatus: order.payment_status ?? (order.paid ? "paid" : "unpaid"),
+    customerName: order.customer_name ?? "",
+    customerEmail: order.customer_email ?? "",
+    customerPhone: formatPhoneNumber(phone ?? ""),
+    addressLine1: address.line1 ?? "",
+    addressLine2: address.line2 ?? "",
+    addressCity: address.city ?? "",
+    addressState: address.state ?? "",
+    addressPostalCode: address.postal_code ?? "",
+    addressCountry: address.country ?? "US",
+    shippingMethod: getShippingMethod(order) === "Not selected" ? "" : getShippingMethod(order),
+    shippingAmount: getDollarInputValue(getShippingAmount(order)),
+    items: (order.order_items ?? []).map((item) => toDraftItem(item, order.currency)),
+    newItemLookupKey: "",
+    newItemQuantity: 1,
+  };
+}
+
+function getOrderItemRows(orderId, draft) {
+  return draft.items.map((item) => ({
+    order_id: orderId,
+    lookup_key: item.lookupKey,
+    stripe_price_id: item.stripePriceId,
+    product_name: item.productName,
+    category: item.category,
+    garment: item.garment,
+    design: item.design,
+    size: item.size,
+    quantity: item.quantity,
+    unit_amount: item.unitAmount,
+    line_total: item.unitAmount * item.quantity,
+  }));
+}
+
+function getCompensationAmount(order, subtotalAmount) {
+  const discount = order.raw_checkout_session?.discount;
+  if (!discount || typeof discount !== "object") {
+    return 0;
+  }
+
+  if (discount.mode === "percent" && typeof discount.label === "string") {
+    const labelMatch = discount.label.match(/^([\d.]+)%/);
+    const percent = Number.parseFloat(labelMatch?.[1] ?? "0");
+    return Number.isFinite(percent) ? Math.round(subtotalAmount * (Math.min(Math.max(percent, 0), 100) / 100)) : 0;
+  }
+
+  return Math.max(0, discount.amount_total ?? 0);
+}
+
 function OwnerOrdersView() {
   const [session, setSession] = useState(null);
   const [email, setEmail] = useState("");
@@ -237,12 +384,15 @@ function OwnerOrdersView() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [orders, setOrders] = useState([]);
   const [drafts, setDrafts] = useState({});
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("open");
   const [expandedStripeOrderIds, setExpandedStripeOrderIds] = useState({});
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState("");
+  const [catalogItems, setCatalogItems] = useState([]);
+  const [catalogError, setCatalogError] = useState("");
   const [savingOrderIds, setSavingOrderIds] = useState({});
   const [saveMessages, setSaveMessages] = useState({});
+  const [editingOrderIds, setEditingOrderIds] = useState({});
   const autoSaveTimeoutsRef = useRef({});
   const draftsRef = useRef({});
 
@@ -269,6 +419,7 @@ function OwnerOrdersView() {
       if (!nextSession) {
         setOrders([]);
         setDrafts({});
+        setEditingOrderIds({});
         setOrdersError("");
       }
       setIsAuthLoading(false);
@@ -287,6 +438,7 @@ function OwnerOrdersView() {
       if (!nextSession) {
         setOrders([]);
         setDrafts({});
+        setEditingOrderIds({});
         setOrdersError("");
       }
       setAuthError("");
@@ -332,6 +484,8 @@ function OwnerOrdersView() {
           currency,
           subtotal_amount,
           total_amount,
+          paid,
+          payment_status,
           shipping_amount,
           shipping_method,
           shipping_fulfillment_method,
@@ -343,6 +497,8 @@ function OwnerOrdersView() {
           raw_checkout_session,
           order_items (
             id,
+            lookup_key,
+            stripe_price_id,
             product_name,
             category,
             garment,
@@ -371,11 +527,7 @@ function OwnerOrdersView() {
           Object.fromEntries(
             nextOrders.map((order) => [
               order.id,
-              {
-                shipped: order.status === "fulfilled" ? "true" : "false",
-                isClosed: order.is_closed ? "true" : "false",
-                notes: order.notes ?? "",
-              },
+              getOrderDraft(order),
             ]),
           ),
         );
@@ -385,6 +537,35 @@ function OwnerOrdersView() {
     };
 
     loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadCatalog = async () => {
+      setCatalogError("");
+
+      try {
+        const catalog = await getSessionCatalog();
+        if (isMounted) {
+          setCatalogItems(catalog.items ?? []);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setCatalogError(error instanceof Error ? error.message : "Unable to load catalog.");
+        }
+      }
+    };
+
+    loadCatalog();
 
     return () => {
       isMounted = false;
@@ -457,14 +638,149 @@ function OwnerOrdersView() {
       [orderId]: "",
     }));
 
-    if (autoSaveTimeoutsRef.current[orderId]) {
-      clearTimeout(autoSaveTimeoutsRef.current[orderId]);
+    if (["shipped", "isClosed", "notes"].includes(field)) {
+      if (autoSaveTimeoutsRef.current[orderId]) {
+        clearTimeout(autoSaveTimeoutsRef.current[orderId]);
+      }
+
+      const delay = field === "notes" ? 700 : 0;
+      autoSaveTimeoutsRef.current[orderId] = setTimeout(() => {
+        handleSaveOrder(orderId, draftsRef.current[orderId]);
+      }, delay);
+    } else {
+      setSaveMessages((current) => ({
+        ...current,
+        [orderId]: "Unsaved edits.",
+      }));
+    }
+  };
+
+  const handleDraftPhoneChange = (orderId, value) => {
+    handleDraftChange(orderId, "customerPhone", formatPhoneNumber(value));
+  };
+
+  const handleNormalizeDraftShippingAmount = (orderId) => {
+    const draft = draftsRef.current[orderId];
+    if (!draft) {
+      return;
     }
 
-    const delay = field === "notes" ? 700 : 0;
-    autoSaveTimeoutsRef.current[orderId] = setTimeout(() => {
-      handleSaveOrder(orderId, draftsRef.current[orderId]);
-    }, delay);
+    handleDraftChange(orderId, "shippingAmount", getDollarInputValue(parseDollarAmount(draft.shippingAmount)));
+  };
+
+  const handleDraftItemQuantityChange = (orderId, draftId, value) => {
+    const quantity = Math.min(Math.max(Number.parseInt(value, 10) || 1, 1), 99);
+    const draft = draftsRef.current[orderId];
+    if (!draft) {
+      return;
+    }
+
+    handleDraftChange(orderId, "items", draft.items.map((item) =>
+      item.draftId === draftId
+        ? {
+            ...item,
+            quantity,
+            lineTotal: item.unitAmount * quantity,
+          }
+        : item,
+    ));
+  };
+
+  const handleRemoveDraftItem = (orderId, draftId) => {
+    const draft = draftsRef.current[orderId];
+    if (!draft) {
+      return;
+    }
+
+    handleDraftChange(orderId, "items", draft.items.filter((item) => item.draftId !== draftId));
+  };
+
+  const handleAddDraftItem = (orderId) => {
+    const draft = draftsRef.current[orderId];
+    const lookupKey = draft?.newItemLookupKey || catalogItems[0]?.lookupKey;
+    const catalogItem = catalogItems.find((item) => item.lookupKey === lookupKey);
+    const quantity = Math.min(Math.max(Number.parseInt(draft?.newItemQuantity, 10) || 1, 1), 99);
+
+    if (!draft || !catalogItem) {
+      return;
+    }
+
+    const existingItem = draft.items.find((item) => item.lookupKey === catalogItem.lookupKey);
+    const nextItems = existingItem
+      ? draft.items.map((item) =>
+          item.lookupKey === catalogItem.lookupKey
+            ? {
+                ...item,
+                quantity: Math.min(item.quantity + quantity, 99),
+                lineTotal: item.unitAmount * Math.min(item.quantity + quantity, 99),
+              }
+            : item,
+        )
+      : [...draft.items, toCatalogDraftItem(catalogItem, quantity)];
+
+    setDrafts((current) => ({
+      ...current,
+      [orderId]: {
+        ...draft,
+        items: nextItems,
+        newItemQuantity: 1,
+      },
+    }));
+    draftsRef.current = {
+      ...draftsRef.current,
+      [orderId]: {
+        ...draft,
+        items: nextItems,
+        newItemQuantity: 1,
+      },
+    };
+    setSaveMessages((current) => ({
+      ...current,
+      [orderId]: "Unsaved edits.",
+    }));
+  };
+
+  const handleBeginEditOrder = (order) => {
+    setDrafts((current) => ({
+      ...current,
+      [order.id]: getOrderDraft(order),
+    }));
+    draftsRef.current = {
+      ...draftsRef.current,
+      [order.id]: getOrderDraft(order),
+    };
+    setEditingOrderIds((current) => ({
+      ...current,
+      [order.id]: true,
+    }));
+    setSaveMessages((current) => ({
+      ...current,
+      [order.id]: "",
+    }));
+  };
+
+  const handleCancelEditOrder = (order) => {
+    if (autoSaveTimeoutsRef.current[order.id]) {
+      clearTimeout(autoSaveTimeoutsRef.current[order.id]);
+      delete autoSaveTimeoutsRef.current[order.id];
+    }
+
+    setDrafts((current) => ({
+      ...current,
+      [order.id]: getOrderDraft(order),
+    }));
+    draftsRef.current = {
+      ...draftsRef.current,
+      [order.id]: getOrderDraft(order),
+    };
+    setEditingOrderIds((current) => ({
+      ...current,
+      [order.id]: false,
+    }));
+    setSaveMessages((current) => ({
+      ...current,
+      [order.id]: "",
+    }));
   };
 
   const handleSignIn = async (event) => {
@@ -517,6 +833,8 @@ function OwnerOrdersView() {
         currency,
         subtotal_amount,
         total_amount,
+        paid,
+        payment_status,
         shipping_amount,
         shipping_method,
         shipping_fulfillment_method,
@@ -528,6 +846,8 @@ function OwnerOrdersView() {
         raw_checkout_session,
         order_items (
           id,
+          lookup_key,
+          stripe_price_id,
           product_name,
           category,
           garment,
@@ -550,11 +870,7 @@ function OwnerOrdersView() {
         Object.fromEntries(
           nextOrders.map((order) => [
             order.id,
-              {
-                shipped: order.status === "fulfilled" ? "true" : "false",
-                isClosed: order.is_closed ? "true" : "false",
-                notes: order.notes ?? "",
-              },
+            getOrderDraft(order),
             ]),
         ),
       );
@@ -576,23 +892,102 @@ function OwnerOrdersView() {
       delete autoSaveTimeoutsRef.current[orderId];
     }
 
+    if ((draft.items ?? []).length === 0) {
+      setSaveMessages((current) => ({
+        ...current,
+        [orderId]: "Add at least one item before saving.",
+      }));
+      return;
+    }
+
     setSavingOrderIds((current) => ({ ...current, [orderId]: true }));
     setSaveMessages((current) => ({ ...current, [orderId]: "Saving..." }));
+
+    const subtotalAmount = draft.items.reduce(
+      (total, item) => total + item.unitAmount * item.quantity,
+      0,
+    );
+    const shippingAmount = parseDollarAmount(draft.shippingAmount);
+    const compensationAmount = getCompensationAmount(order, subtotalAmount);
+    const totalAmount = Math.max(0, subtotalAmount + shippingAmount - compensationAmount);
+    const rawCheckoutSession = order.raw_checkout_session ?? {};
+    const existingCustomerDetails = rawCheckoutSession.customer_details ?? {};
+    const existingShippingDetails = rawCheckoutSession.shipping_details ?? {};
+    const customerDetails = {
+      ...existingCustomerDetails,
+      email: trimToNull(draft.customerEmail),
+      name: trimToNull(draft.customerName),
+      phone: trimToNull(draft.customerPhone),
+      address: {
+        line1: trimToNull(draft.addressLine1),
+        line2: trimToNull(draft.addressLine2),
+        city: trimToNull(draft.addressCity),
+        state: trimToNull(draft.addressState),
+        postal_code: trimToNull(draft.addressPostalCode),
+        country: trimToNull(draft.addressCountry),
+      },
+    };
+    const shippingDetails = {
+      ...existingShippingDetails,
+      name: customerDetails.name,
+      phone: customerDetails.phone,
+      address: customerDetails.address,
+    };
+    const nextRawCheckoutSession = {
+      ...rawCheckoutSession,
+      customer_details: customerDetails,
+      shipping_details: shippingDetails,
+      amount_subtotal: subtotalAmount,
+      amount_total: totalAmount,
+      shipping_cost: {
+        ...(rawCheckoutSession.shipping_cost ?? {}),
+        amount_total: shippingAmount,
+      },
+      currency: order.currency,
+    };
+    const nextStatus =
+      order.status === "canceled" || order.status === "refunded"
+        ? order.status
+        : draft.shipped === "true"
+          ? "fulfilled"
+          : "in_progress";
 
     const { data, error } = await supabase
       .from("orders")
       .update({
-        status:
-          order.status === "canceled" || order.status === "refunded"
-            ? order.status
-            : draft.shipped === "true"
-              ? "fulfilled"
-              : "in_progress",
+        customer_email: trimToNull(draft.customerEmail),
+        customer_name: trimToNull(draft.customerName),
+        subtotal_amount: subtotalAmount,
+        total_amount: totalAmount,
+        paid: draft.paymentStatus === "paid",
+        payment_status: draft.paymentStatus,
+        shipping_amount: shippingAmount,
+        shipping_method: trimToNull(draft.shippingMethod),
+        shipping_fulfillment_method: trimToNull(draft.shippingMethod) ? "manual" : null,
+        raw_checkout_session: nextRawCheckoutSession,
+        status: nextStatus,
         is_closed: draft.isClosed === "true",
         notes: draft.notes.trim() || null,
       })
       .eq("id", orderId)
-      .select("id, status, is_closed, notes, updated_at")
+      .select(`
+        id,
+        updated_at,
+        customer_email,
+        customer_name,
+        currency,
+        subtotal_amount,
+        total_amount,
+        paid,
+        payment_status,
+        shipping_amount,
+        shipping_method,
+        shipping_fulfillment_method,
+        status,
+        is_closed,
+        notes,
+        raw_checkout_session
+      `)
       .single();
 
     if (error) {
@@ -601,33 +996,93 @@ function OwnerOrdersView() {
         [orderId]: error.message,
       }));
     } else {
+      const { error: deleteError } = await supabase
+        .from("order_items")
+        .delete()
+        .eq("order_id", orderId);
+
+      if (deleteError) {
+        setSaveMessages((current) => ({
+          ...current,
+          [orderId]: deleteError.message,
+        }));
+        setSavingOrderIds((current) => ({ ...current, [orderId]: false }));
+        return;
+      }
+
+      const itemRows = getOrderItemRows(orderId, draft);
+      const { data: savedItems, error: insertError } = await supabase
+        .from("order_items")
+        .insert(itemRows)
+        .select(`
+          id,
+          lookup_key,
+          stripe_price_id,
+          product_name,
+          category,
+          garment,
+          design,
+          size,
+          quantity,
+          unit_amount,
+          line_total
+        `);
+
+      if (insertError) {
+        setSaveMessages((current) => ({
+          ...current,
+          [orderId]: insertError.message,
+        }));
+        setSavingOrderIds((current) => ({ ...current, [orderId]: false }));
+        return;
+      }
+
       setOrders((current) =>
         current.map((order) =>
           order.id === orderId
             ? {
                 ...order,
+                customer_email: data.customer_email,
+                customer_name: data.customer_name,
+                subtotal_amount: data.subtotal_amount,
+                total_amount: data.total_amount,
+                paid: data.paid,
+                payment_status: data.payment_status,
+                shipping_amount: data.shipping_amount,
+                shipping_method: data.shipping_method,
+                shipping_fulfillment_method: data.shipping_fulfillment_method,
                 status: data.status,
                 is_closed: data.is_closed,
                 notes: data.notes,
+                raw_checkout_session: data.raw_checkout_session,
                 updated_at: data.updated_at,
+                order_items: savedItems ?? [],
               }
             : order,
         ),
       );
 
+      const nextOrder = {
+        ...order,
+        ...data,
+        order_items: savedItems ?? [],
+      };
       setDrafts((current) => ({
         ...current,
-        [orderId]: {
-          shipped: data.status === "fulfilled" ? "true" : "false",
-          isClosed: data.is_closed ? "true" : "false",
-          notes: data.notes ?? "",
-        },
+        [orderId]: getOrderDraft(nextOrder),
       }));
 
       setSaveMessages((current) => ({
         ...current,
-        [orderId]: "Saved automatically.",
+        [orderId]: draftOverride ? "Saved automatically." : "Order edits saved.",
       }));
+
+      if (!draftOverride) {
+        setEditingOrderIds((current) => ({
+          ...current,
+          [orderId]: false,
+        }));
+      }
     }
 
     setSavingOrderIds((current) => ({ ...current, [orderId]: false }));
@@ -812,8 +1267,9 @@ function OwnerOrdersView() {
       </div>
 
       <div className="owner-orders-export-actions surface-card">
-        <span>Export workbook</span>
-        <div className="owner-orders-export-actions__buttons">
+        <div className="owner-orders-export-group">
+          <span>Export to Excel</span>
+          <div className="owner-orders-export-actions__buttons">
           <button
             type="button"
             className="owner-orders-secondary"
@@ -838,6 +1294,20 @@ function OwnerOrdersView() {
           >
             Closed orders
           </button>
+          </div>
+        </div>
+        <span className="owner-orders-tool-divider" aria-hidden="true">
+          |
+        </span>
+        <div className="owner-orders-create-actions">
+          <a
+            href="/orders/new"
+            className="owner-orders-secondary owner-orders-button-link owner-orders-create-link"
+            onClick={(event) => handleAppLinkClick(event, "/orders/new")}
+          >
+            <HiPlusSmall aria-hidden="true" />
+            Create new order
+          </a>
         </div>
       </div>
 
@@ -855,49 +1325,118 @@ function OwnerOrdersView() {
             shipped: order.status === "fulfilled" ? "true" : "false",
             isClosed: order.is_closed ? "true" : "false",
             notes: order.notes ?? "",
+            paymentStatus: order.payment_status ?? (order.paid ? "paid" : "unpaid"),
+            customerName: order.customer_name ?? "",
+            customerEmail: order.customer_email ?? "",
+            customerPhone: formatPhoneNumber(getCustomerPhone(order) ?? ""),
+            shippingMethod: getShippingMethod(order) === "Not selected" ? "" : getShippingMethod(order),
+            shippingAmount: getDollarInputValue(getShippingAmount(order)),
+            addressLine1: getAddressObject(order).line1 ?? "",
+            addressLine2: getAddressObject(order).line2 ?? "",
+            addressCity: getAddressObject(order).city ?? "",
+            addressState: getAddressObject(order).state ?? "",
+            addressPostalCode: getAddressObject(order).postal_code ?? "",
+            addressCountry: getAddressObject(order).country ?? "US",
+            items: (order.order_items ?? []).map((item) => toDraftItem(item, order.currency)),
+            newItemLookupKey: "",
+            newItemQuantity: 1,
           };
           const isSaving = Boolean(savingOrderIds[order.id]);
           const isStripeInfoExpanded = Boolean(expandedStripeOrderIds[order.id]);
-          const customerPhone = getCustomerPhone(order);
-          const customerPhoneHref = getPhoneHref(customerPhone);
-          const shippingMethod = getShippingMethod(order);
-          const shippingAmount = getShippingAmount(order);
-          const itemCount = (order.order_items ?? []).reduce(
+          const isEditingOrder = Boolean(editingOrderIds[order.id]);
+          const shippingAmount = isEditingOrder
+            ? parseDollarAmount(draft.shippingAmount)
+            : getShippingAmount(order);
+          const itemCount = (draft.items ?? []).reduce(
             (total, item) => total + (item.quantity ?? 0),
             0,
           );
+          const draftSubtotal = (draft.items ?? []).reduce(
+            (total, item) => total + item.unitAmount * item.quantity,
+            0,
+          );
+          const draftTotal = Math.max(
+            0,
+            draftSubtotal + shippingAmount - getCompensationAmount(order, draftSubtotal),
+          );
+          const shouldShowStripeInfo = hasStripeInfo(order);
+          const customerPhone = getCustomerPhone(order);
+          const customerPhoneHref = getPhoneHref(customerPhone);
 
           return (
             <article key={order.id} className="owner-orders-card surface-card">
               <div className="owner-orders-card__header">
-                <div>
-                  <h3>{order.customer_name || "Customer name unavailable"}</h3>
-                  <p>
-                    {order.customer_email ? (
-                      <a href={`mailto:${order.customer_email}`}>{order.customer_email}</a>
-                    ) : (
-                      "No email on file"
-                    )}
-                  </p>
-                  <p>
-                    {customerPhoneHref ? (
-                      <a href={customerPhoneHref}>{customerPhone}</a>
-                    ) : (
-                      "No phone on file"
-                    )}
-                  </p>
-                </div>
+                {isEditingOrder ? (
+                  <div className="owner-orders-edit-grid">
+                    <label className="owner-orders-field">
+                      <span>Name</span>
+                      <input
+                        value={draft.customerName}
+                        onChange={(event) => handleDraftChange(order.id, "customerName", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>Email</span>
+                      <input
+                        type="email"
+                        value={draft.customerEmail}
+                        onChange={(event) => handleDraftChange(order.id, "customerEmail", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>Phone</span>
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        value={draft.customerPhone}
+                        onChange={(event) => handleDraftPhoneChange(order.id, event.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div>
+                    <h3>{order.customer_name || "Customer name unavailable"}</h3>
+                    <p>
+                      {order.customer_email ? (
+                        <a href={`mailto:${order.customer_email}`}>{order.customer_email}</a>
+                      ) : (
+                        "No email on file"
+                      )}
+                    </p>
+                    <p>
+                      {customerPhoneHref ? (
+                        <a href={customerPhoneHref}>{customerPhone}</a>
+                      ) : (
+                        "No phone on file"
+                      )}
+                    </p>
+                  </div>
+                )}
 
                 <div className="owner-orders-card__total">
-                  <strong>{formatCurrency(order.total_amount, order.currency)}</strong>
+                  <strong>{formatCurrency(isEditingOrder ? draftTotal : order.total_amount, order.currency)}</strong>
                   <span>{itemCount} item{itemCount === 1 ? "" : "s"}</span>
                 </div>
               </div>
 
               <div className="owner-orders-meta">
                 <p>
-                  <span>Paid</span>
-                  <strong>{getPaymentSummary(order)}</strong>
+                  <span>Payment status</span>
+                  {isEditingOrder ? (
+                    <select
+                      className="owner-orders-inline-select"
+                      value={draft.paymentStatus}
+                      onChange={(event) => handleDraftChange(order.id, "paymentStatus", event.target.value)}
+                    >
+                      {PAYMENT_STATUS_OPTIONS.map((status) => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <strong>{getPaymentSummary(order)}</strong>
+                  )}
                 </p>
                 <p>
                   <span>Placed on</span>
@@ -913,31 +1452,33 @@ function OwnerOrdersView() {
                 </p>
               </div>
 
-              <div className="owner-orders-contents">
-                <div className="owner-orders-section-header">
-                  <h2>Stripe Info</h2>
-                  <button
-                    type="button"
-                    className="owner-orders-collapse-toggle"
-                    onClick={() => handleToggleStripeInfo(order.id)}
-                    aria-expanded={isStripeInfoExpanded}
-                    aria-label={isStripeInfoExpanded ? "Collapse Stripe Info" : "Expand Stripe Info"}
-                  >
-                    {isStripeInfoExpanded ? (
-                      <>
-                        <span>Collapse</span>
-                        <HiChevronUp aria-hidden="true" />
-                      </>
-                    ) : (
-                      <>
-                        <span>Expand</span>
-                        <HiChevronDown aria-hidden="true" />
-                      </>
-                    )}
-                  </button>
+              {shouldShowStripeInfo ? (
+                <div className="owner-orders-contents">
+                  <div className="owner-orders-section-header">
+                    <h2>Stripe Info</h2>
+                    <button
+                      type="button"
+                      className="owner-orders-collapse-toggle"
+                      onClick={() => handleToggleStripeInfo(order.id)}
+                      aria-expanded={isStripeInfoExpanded}
+                      aria-label={isStripeInfoExpanded ? "Collapse Stripe Info" : "Expand Stripe Info"}
+                    >
+                      {isStripeInfoExpanded ? (
+                        <>
+                          <span>Collapse</span>
+                          <HiChevronUp aria-hidden="true" />
+                        </>
+                      ) : (
+                        <>
+                          <span>Expand</span>
+                          <HiChevronDown aria-hidden="true" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-              {isStripeInfoExpanded ? (
+              ) : null}
+              {shouldShowStripeInfo && isStripeInfoExpanded ? (
                 <div className="owner-orders-details">
                   <p className="owner-orders-details__wide">
                     <span>Checkout reference</span>
@@ -951,18 +1492,85 @@ function OwnerOrdersView() {
               ) : null}
 
               <div className="owner-orders-details">
-                <p className="owner-orders-details__wide">
-                  <span>Shipping address</span>
-                  <strong className="owner-orders-prewrap">{getShippingAddress(order)}</strong>
-                </p>
-                <p>
-                  <span>Delivery method</span>
-                  <strong>{shippingMethod}</strong>
-                </p>
-                <p>
-                  <span>Shipping amount</span>
-                  <strong>{formatCurrency(shippingAmount, order.currency)}</strong>
-                </p>
+                {isEditingOrder ? (
+                  <>
+                    <label className="owner-orders-field owner-orders-details__wide">
+                      <span>Address line 1</span>
+                      <input
+                        value={draft.addressLine1}
+                        onChange={(event) => handleDraftChange(order.id, "addressLine1", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field owner-orders-details__wide">
+                      <span>Address line 2</span>
+                      <input
+                        value={draft.addressLine2}
+                        onChange={(event) => handleDraftChange(order.id, "addressLine2", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>City</span>
+                      <input
+                        value={draft.addressCity}
+                        onChange={(event) => handleDraftChange(order.id, "addressCity", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>State</span>
+                      <input
+                        value={draft.addressState}
+                        onChange={(event) => handleDraftChange(order.id, "addressState", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>ZIP / postal code</span>
+                      <input
+                        value={draft.addressPostalCode}
+                        onChange={(event) => handleDraftChange(order.id, "addressPostalCode", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>Country</span>
+                      <input
+                        value={draft.addressCountry}
+                        onChange={(event) => handleDraftChange(order.id, "addressCountry", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>Delivery method</span>
+                      <input
+                        value={draft.shippingMethod}
+                        onChange={(event) => handleDraftChange(order.id, "shippingMethod", event.target.value)}
+                      />
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>Shipping amount</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={draft.shippingAmount}
+                        onChange={(event) => handleDraftChange(order.id, "shippingAmount", event.target.value)}
+                        onBlur={() => handleNormalizeDraftShippingAmount(order.id)}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <p className="owner-orders-details__wide">
+                      <span>Shipping address</span>
+                      <strong className="owner-orders-prewrap">{getShippingAddress(order)}</strong>
+                    </p>
+                    <p>
+                      <span>Delivery method</span>
+                      <strong>{getShippingMethod(order)}</strong>
+                    </p>
+                    <p>
+                      <span>Shipping amount</span>
+                      <strong>{formatCurrency(shippingAmount, order.currency)}</strong>
+                    </p>
+                  </>
+                )}
                 <label className="owner-orders-checkbox-row">
                   <span>Shipped</span>
                   <input
@@ -980,26 +1588,85 @@ function OwnerOrdersView() {
                 <h2>Order Contents</h2>
               </div>
               <ul className="owner-orders-items">
-                {(order.order_items ?? []).map((item) => (
-                  <li key={item.id} className="owner-orders-item">
+                {(isEditingOrder ? draft.items : (order.order_items ?? []).map((item) => toDraftItem(item, order.currency))).map((item) => (
+                  <li key={item.draftId} className="owner-orders-item">
                     <div>
                       <div className="owner-orders-item__title-row">
-                        <strong>
-                          {item.product_name}
-                          {item.category === "apparel" && item.size
-                            ? ` - ${formatSizeLabel(item.size)}`
-                            : ""}
-                        </strong>
+                        <strong>{getEditableItemLabel(item)}</strong>
                       </div>
                       <p className="owner-orders-item__quantity">Qty {item.quantity}</p>
                     </div>
 
-                    <div className="owner-orders-item__pricing">
-                      <strong>{formatCurrency(item.line_total, order.currency)}</strong>
-                    </div>
+                    {isEditingOrder ? (
+                      <div className="owner-orders-manual-line-controls">
+                        <input
+                          type="number"
+                          min="1"
+                          max="99"
+                          step="1"
+                          aria-label={`Quantity for ${item.productName}`}
+                          value={item.quantity}
+                          onChange={(event) =>
+                            handleDraftItemQuantityChange(order.id, item.draftId, event.target.value)
+                          }
+                        />
+                        <strong>{formatCurrency(item.unitAmount * item.quantity, order.currency)}</strong>
+                        <button
+                          type="button"
+                          className="owner-orders-secondary"
+                          onClick={() => handleRemoveDraftItem(order.id, item.draftId)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="owner-orders-item__pricing">
+                        <strong>{formatCurrency(item.unitAmount * item.quantity, order.currency)}</strong>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
+              {isEditingOrder ? (
+                <>
+                  <div className="owner-orders-manual-item-picker">
+                    <label className="owner-orders-field">
+                      <span>Add item</span>
+                      <select
+                        value={draft.newItemLookupKey || catalogItems[0]?.lookupKey || ""}
+                        onChange={(event) => handleDraftChange(order.id, "newItemLookupKey", event.target.value)}
+                        disabled={catalogItems.length === 0}
+                      >
+                        {catalogItems.map((item) => (
+                          <option key={item.lookupKey} value={item.lookupKey}>
+                            {getCatalogItemLabel(item)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="owner-orders-field">
+                      <span>Qty</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="99"
+                        step="1"
+                        value={draft.newItemQuantity}
+                        onChange={(event) => handleDraftChange(order.id, "newItemQuantity", event.target.value)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="owner-orders-secondary"
+                      onClick={() => handleAddDraftItem(order.id)}
+                      disabled={catalogItems.length === 0}
+                    >
+                      Add item
+                    </button>
+                  </div>
+                  {catalogError ? <p className="owner-orders-error">{catalogError}</p> : null}
+                </>
+              ) : null}
 
               <div className="owner-orders-editor">
                 <label className="owner-orders-field">
@@ -1014,7 +1681,51 @@ function OwnerOrdersView() {
               </div>
 
               <div className="owner-orders-actions">
+                <div className="owner-orders-action-message" aria-live="polite">
+                  {saveMessages[order.id] ? (
+                    <p
+                      className={
+                        saveMessages[order.id] === "Saved automatically." ||
+                        saveMessages[order.id] === "Saving..." ||
+                        saveMessages[order.id] === "Order edits saved." ||
+                        saveMessages[order.id] === "Unsaved edits."
+                          ? "owner-orders-note"
+                          : "owner-orders-error"
+                      }
+                    >
+                      {saveMessages[order.id]}
+                    </p>
+                  ) : null}
+                </div>
                 <div className="owner-orders-actions__buttons">
+                  {isEditingOrder ? (
+                    <>
+                      <button
+                        type="button"
+                        className="owner-orders-primary"
+                        onClick={() => handleSaveOrder(order.id)}
+                        disabled={isSaving}
+                      >
+                        Save order edits
+                      </button>
+                      <button
+                        type="button"
+                        className="owner-orders-secondary"
+                        onClick={() => handleCancelEditOrder(order)}
+                        disabled={isSaving}
+                      >
+                        Cancel edits
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="owner-orders-secondary"
+                      onClick={() => handleBeginEditOrder(order)}
+                    >
+                      Edit order
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="owner-orders-secondary"
@@ -1031,17 +1742,6 @@ function OwnerOrdersView() {
                     {order.is_closed ? "Open This Order" : "Close This Order"}
                   </button>
                 </div>
-                {saveMessages[order.id] ? (
-                  <p
-                    className={
-                      saveMessages[order.id] === "Saved automatically." || saveMessages[order.id] === "Saving..."
-                        ? "owner-orders-note"
-                        : "owner-orders-error"
-                    }
-                  >
-                    {saveMessages[order.id]}
-                  </p>
-                ) : null}
               </div>
             </article>
           );
