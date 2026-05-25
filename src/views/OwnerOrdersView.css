@@ -14,6 +14,10 @@
 .owner-orders-list,
 .owner-orders-export-actions,
 .owner-orders-export-actions__buttons,
+.owner-orders-export-group,
+.owner-orders-edit-grid,
+.owner-orders-manual-item-picker,
+.owner-orders-manual-line-controls,
 .owner-orders-actions__buttons,
 .owner-orders-toolbar-actions,
 .owner-orders-actions,
@@ -48,6 +52,15 @@
   justify-content: flex-end;
 }
 
+.owner-orders-action-message {
+  flex: 1 1 12rem;
+  min-height: 2.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: right;
+}
+
 .owner-orders-actions__buttons {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -73,20 +86,60 @@
 
 .owner-orders-export-actions {
   align-items: center;
-  grid-template-columns: minmax(8rem, max-content) 1fr;
+  grid-template-columns: 1fr max-content max-content;
   padding: 1rem;
 }
 
-.owner-orders-export-actions > span {
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.owner-orders-export-group {
+  grid-template-columns: minmax(8.75rem, max-content) 1fr;
+  align-items: center;
+}
+
+.owner-orders-export-group > span {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgb(33 29 30 / 0.72);
+  color: var(--color-text);
 }
 
 .owner-orders-export-actions__buttons {
   grid-template-columns: repeat(auto-fit, minmax(10rem, max-content));
+}
+
+.owner-orders-edit-grid {
+  grid-template-columns: repeat(3, minmax(10rem, 1fr));
+  width: min(100%, 44rem);
+}
+
+.owner-orders-tool-divider {
+  color: rgb(33 29 30 / 0.32);
+  font-weight: 700;
+}
+
+.owner-orders-manual-item-picker {
+  grid-template-columns: minmax(16rem, 1fr) minmax(5.5rem, 7rem) max-content;
+  align-items: end;
+}
+
+.owner-orders-manual-line-controls {
+  grid-template-columns: 5.5rem max-content max-content;
+  align-items: center;
+}
+
+.owner-orders-manual-line-controls input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0.8rem;
+  background: var(--color-background-dark);
+  padding: 0.55rem 0.65rem;
+}
+
+.owner-orders-manual-totals {
+  padding: 0.95rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+  background: rgb(255 255 255 / 0.25);
 }
 
 .owner-orders-tab {
@@ -178,6 +231,28 @@
 .owner-orders-secondary {
   border: 1px solid var(--color-border);
   background: var(--color-background-light);
+}
+
+.owner-orders-button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+}
+
+.owner-orders-create-link {
+  border-color: rgb(54 107 74 / 0.4);
+  background: rgb(54, 107, 74);
+  color: rgb(255 255 255);
+  font-weight: 700;
+}
+
+.owner-orders-create-link svg {
+  flex: 0 0 auto;
+  font-size: 1.25rem;
 }
 
 .owner-orders-closure-toggle {
@@ -384,15 +459,36 @@
     grid-template-columns: 1fr;
   }
 
+  .owner-orders-tool-divider {
+    display: none;
+  }
+
+  .owner-orders-create-actions {
+    width: 100%;
+  }
+
+  .owner-orders-export-group {
+    grid-template-columns: 1fr;
+  }
+
   .owner-orders-export-actions__buttons {
     grid-template-columns: 1fr;
   }
 
   .owner-orders-toolbar-actions button,
   .owner-orders-export-actions__buttons button,
+  .owner-orders-export-actions__buttons a,
   .owner-orders-primary,
   .owner-orders-secondary {
     width: 100%;
+  }
+
+  .owner-orders-card__header,
+  .owner-orders-edit-grid,
+  .owner-orders-item,
+  .owner-orders-manual-item-picker,
+  .owner-orders-manual-line-controls {
+    grid-template-columns: 1fr;
   }
 
   .owner-orders-card__header,
@@ -403,6 +499,12 @@
   .owner-orders-actions,
   .owner-orders-actions__buttons {
     width: 100%;
+  }
+
+  .owner-orders-action-message {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .owner-orders-actions__buttons {

@@ -329,6 +329,8 @@ Deno.serve(async (req) => {
       currency: session.currency,
       subtotal_amount: session.amount_subtotal ?? 0,
       total_amount: session.amount_total ?? 0,
+      paid: true,
+      payment_status: "paid",
       shipping_amount: getShippingAmount(session),
       shipping_method: getShippingMethod(session),
       shipping_fulfillment_method: getShippingFulfillmentMethod(session),
