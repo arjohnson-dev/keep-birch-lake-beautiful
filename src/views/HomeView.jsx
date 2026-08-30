@@ -167,6 +167,19 @@ function HomeView() {
             incredible life lived. We love you Coach! You are the man!
           </p>
         </div>
+        <div className="coach-message__checks">
+          <p>
+            Checks can be made out to: <strong>Birch Lake Yacht Club</strong>.
+            In the memo section write <strong>Water Quality Fund</strong>.
+          </p>
+          <p>
+            Mail to: <strong>Deb Spratt, Treasurer</strong>
+            <br />
+            18100 Farmington Hills Dr.
+            <br />
+            South Bend, IN 46637
+          </p>
+        </div>
       </section>
 
       <div className="thank-you-hero">

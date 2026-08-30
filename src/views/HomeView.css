@@ -228,6 +228,27 @@
   line-height: 1.65;
 }
 
+.coach-message__checks {
+  justify-self: center;
+  width: min(100%, 42rem);
+  border-top: 1px solid rgb(174 139 76 / 0.5);
+  border-bottom: 1px solid rgb(174 139 76 / 0.5);
+  padding: 1.15rem 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.coach-message__checks p {
+  color: rgb(9 32 59 / 0.9);
+  font-size: clamp(1rem, 1.7vw, 1.12rem);
+  line-height: 1.55;
+}
+
+.coach-message__checks strong {
+  color: rgb(9 32 59);
+  font-weight: 700;
+}
+
 .thank-you-hero {
   display: grid;
   grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
