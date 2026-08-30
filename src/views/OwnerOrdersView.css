@@ -86,13 +86,16 @@
 
 .owner-orders-export-actions {
   align-items: center;
-  grid-template-columns: 1fr max-content max-content;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
   padding: 1rem;
 }
 
 .owner-orders-export-group {
-  grid-template-columns: minmax(8.75rem, max-content) 1fr;
+  display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .owner-orders-export-group > span {
@@ -104,7 +107,13 @@
 }
 
 .owner-orders-export-actions__buttons {
-  grid-template-columns: repeat(auto-fit, minmax(10rem, max-content));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(8.75rem, max-content);
+  white-space: nowrap;
+}
+
+.owner-orders-create-actions {
+  flex: 0 0 auto;
 }
 
 .owner-orders-edit-grid {

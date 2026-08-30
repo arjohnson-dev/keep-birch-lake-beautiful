@@ -77,6 +77,10 @@ function buildOrderItemRow(orderId, item, quantity) {
   };
 }
 
+function hasDonationItem(items) {
+  return items.some((item) => item.category === "donation");
+}
+
 function OwnerCreateOrderView() {
   const [session, setSession] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -200,6 +204,13 @@ function OwnerCreateOrderView() {
   const shippingAmountCents = parseDollarAmount(shippingAmount);
   const totalAmount = Math.max(0, subtotalAmount + shippingAmountCents - discountAmount);
   const currency = orderItems[0]?.currency ?? catalogItems[0]?.currency ?? "usd";
+  const includesDonation = hasDonationItem(orderItems);
+
+  useEffect(() => {
+    if (includesDonation && paymentStatus !== "paid") {
+      setPaymentStatus("paid");
+    }
+  }, [includesDonation, paymentStatus]);
 
   const handleAddItem = () => {
     const selectedItem = catalogByLookupKey.get(selectedLookupKey);
@@ -314,6 +325,7 @@ function OwnerCreateOrderView() {
         : null;
     const discountNote = discountLabel ? `${discountLabel} : ${formatMoney(discountAmount, currency)}` : null;
     const normalizedNotes = [discountNote, notes.trim()].filter(Boolean).join("\n\n") || null;
+    const nextPaymentStatus = includesDonation ? "paid" : paymentStatus;
 
     const orderPayload = {
       stripe_checkout_session_id: null,
@@ -324,8 +336,8 @@ function OwnerCreateOrderView() {
       currency,
       subtotal_amount: subtotalAmount,
       total_amount: totalAmount,
-      paid: paymentStatus === "paid",
-      payment_status: paymentStatus,
+      paid: nextPaymentStatus === "paid",
+      payment_status: nextPaymentStatus,
       shipping_amount: shippingAmountCents,
       shipping_method: shippingMethod.trim() || null,
       shipping_fulfillment_method: shippingMethod.trim() ? "manual" : null,
@@ -472,7 +484,11 @@ function OwnerCreateOrderView() {
           </label>
           <label className="owner-orders-field">
             <span>Payment status</span>
-            <select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)}>
+            <select
+              value={includesDonation ? "paid" : paymentStatus}
+              onChange={(event) => setPaymentStatus(event.target.value)}
+              disabled={includesDonation}
+            >
               {PAYMENT_STATUS_OPTIONS.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}

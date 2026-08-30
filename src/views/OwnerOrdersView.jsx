@@ -13,6 +13,16 @@ const ORDER_TABS = [
   { key: "donations", label: "Donations", countKey: "donations" },
 ];
 const CSV_COLUMNS = ["name", "item", "qty", "phone", "email", "delivery method"];
+const DONATION_CSV_COLUMNS = [
+  "date",
+  "name",
+  "email",
+  "phone",
+  "amount",
+  "payment status",
+  "checkout reference",
+  "notes",
+];
 const PAYMENT_STATUS_OPTIONS = [
   { value: "unpaid", label: "Unpaid" },
   { value: "partial_payment", label: "Partial payment" },
@@ -50,6 +60,10 @@ function formatDateTime(value) {
 }
 
 function getPaymentSummary(order) {
+  if (hasDonationItem(order)) {
+    return "Paid";
+  }
+
   return PAYMENT_STATUS_LABELS[order.payment_status] ?? (order.paid ? "Paid" : "Unpaid");
 }
 
@@ -173,6 +187,25 @@ function getOrderExportRows(order) {
   ]);
 }
 
+function hasDonationItem(order) {
+  return (order.order_items ?? []).some((item) => item.category === "donation");
+}
+
+function getDonationExportRows(order) {
+  return (order.order_items ?? [])
+    .filter((item) => item.category === "donation")
+    .map((item) => [
+      formatDateTime(order.created_at),
+      order.customer_name || "",
+      order.customer_email || "",
+      getCustomerPhone(order) || "",
+      formatCurrency(item.line_total, order.currency),
+      getPaymentSummary(order),
+      order.stripe_checkout_session_id || "",
+      order.notes || "",
+    ]);
+}
+
 function escapeXmlValue(value) {
   const stringValue = value === null || value === undefined ? "" : String(value);
   return stringValue
@@ -182,8 +215,13 @@ function escapeXmlValue(value) {
     .replace(/"/g, "&quot;");
 }
 
-function toWorkbookXml(ordersToExport) {
-  const rows = [CSV_COLUMNS, ...ordersToExport.flatMap((order) => getOrderExportRows(order))]
+function toWorkbookXml({
+  columns = CSV_COLUMNS,
+  ordersToExport,
+  getRows = getOrderExportRows,
+  worksheetName = "Orders",
+}) {
+  const rows = [columns, ...ordersToExport.flatMap((order) => getRows(order))]
     .map(
       (row) =>
         `<Row>${row
@@ -199,12 +237,12 @@ function toWorkbookXml(ordersToExport) {
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:html="http://www.w3.org/TR/REC-html40">
-<Worksheet ss:Name="Orders"><Table>${rows}</Table></Worksheet>
+<Worksheet ss:Name="${escapeXmlValue(worksheetName)}"><Table>${rows}</Table></Worksheet>
 </Workbook>`;
 }
 
-function downloadWorkbook(filename, ordersToExport) {
-  const xml = toWorkbookXml(ordersToExport);
+function downloadWorkbook(filename, options) {
+  const xml = toWorkbookXml(options);
   const blob = new Blob([xml], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -320,11 +358,13 @@ function toCatalogDraftItem(item, quantity) {
 function getOrderDraft(order) {
   const address = getAddressObject(order);
   const phone = getCustomerPhone(order);
+  const includesDonation = hasDonationItem(order);
+
   return {
     shipped: order.status === "fulfilled" ? "true" : "false",
     isClosed: order.is_closed ? "true" : "false",
     notes: order.notes ?? "",
-    paymentStatus: order.payment_status ?? (order.paid ? "paid" : "unpaid"),
+    paymentStatus: includesDonation ? "paid" : order.payment_status ?? (order.paid ? "paid" : "unpaid"),
     customerName: order.customer_name ?? "",
     customerEmail: order.customer_email ?? "",
     customerPhone: formatPhoneNumber(phone ?? ""),
@@ -609,11 +649,13 @@ function OwnerOrdersView() {
 
   const exportableOrderGroups = useMemo(() => {
     const nonDonationOrders = orders.filter((order) => !isDonationOrder(order));
+    const donationOrders = orders.filter((order) => hasDonationItem(order));
 
     return {
       all: nonDonationOrders,
       open: nonDonationOrders.filter((order) => !order.is_closed),
       closed: nonDonationOrders.filter((order) => order.is_closed),
+      donations: donationOrders,
     };
   }, [orders]);
 
@@ -910,6 +952,8 @@ function OwnerOrdersView() {
     const shippingAmount = parseDollarAmount(draft.shippingAmount);
     const compensationAmount = getCompensationAmount(order, subtotalAmount);
     const totalAmount = Math.max(0, subtotalAmount + shippingAmount - compensationAmount);
+    const includesDonation = (draft.items ?? []).some((item) => item.category === "donation");
+    const nextPaymentStatus = includesDonation ? "paid" : draft.paymentStatus;
     const rawCheckoutSession = order.raw_checkout_session ?? {};
     const existingCustomerDetails = rawCheckoutSession.customer_details ?? {};
     const existingShippingDetails = rawCheckoutSession.shipping_details ?? {};
@@ -959,8 +1003,8 @@ function OwnerOrdersView() {
         customer_name: trimToNull(draft.customerName),
         subtotal_amount: subtotalAmount,
         total_amount: totalAmount,
-        paid: draft.paymentStatus === "paid",
-        payment_status: draft.paymentStatus,
+        paid: nextPaymentStatus === "paid",
+        payment_status: nextPaymentStatus,
         shipping_amount: shippingAmount,
         shipping_method: trimToNull(draft.shippingMethod),
         shipping_fulfillment_method: trimToNull(draft.shippingMethod) ? "manual" : null,
@@ -1150,12 +1194,25 @@ function OwnerOrdersView() {
   };
 
   const handleExportOrderWorkbook = (order) => {
-    downloadWorkbook(getOrderWorkbookFilename(order), [order]);
+    downloadWorkbook(getOrderWorkbookFilename(order), {
+      ordersToExport: [order],
+    });
   };
 
   const handleExportOrderGroupWorkbook = (groupName) => {
     const ordersToExport = exportableOrderGroups[groupName] ?? [];
-    downloadWorkbook(`kblb-orders-${groupName}.xls`, ordersToExport);
+    downloadWorkbook(`kblb-orders-${groupName}.xls`, {
+      ordersToExport,
+    });
+  };
+
+  const handleExportDonationWorkbook = () => {
+    downloadWorkbook("kblb-donations.xls", {
+      columns: DONATION_CSV_COLUMNS,
+      ordersToExport: exportableOrderGroups.donations,
+      getRows: getDonationExportRows,
+      worksheetName: "Donations",
+    });
   };
 
   if (isAuthLoading) {
@@ -1294,6 +1351,14 @@ function OwnerOrdersView() {
           >
             Closed orders
           </button>
+          <button
+            type="button"
+            className="owner-orders-secondary"
+            onClick={handleExportDonationWorkbook}
+            disabled={exportableOrderGroups.donations.length === 0}
+          >
+            Donations
+          </button>
           </div>
         </div>
         <span className="owner-orders-tool-divider" aria-hidden="true">
@@ -1321,11 +1386,12 @@ function OwnerOrdersView() {
       <div className="owner-orders-list">
         {filteredOrders.map((order) => {
           const isDonation = isDonationOrder(order);
+          const includesDonation = hasDonationItem(order);
           const draft = drafts[order.id] ?? {
             shipped: order.status === "fulfilled" ? "true" : "false",
             isClosed: order.is_closed ? "true" : "false",
             notes: order.notes ?? "",
-            paymentStatus: order.payment_status ?? (order.paid ? "paid" : "unpaid"),
+            paymentStatus: includesDonation ? "paid" : order.payment_status ?? (order.paid ? "paid" : "unpaid"),
             customerName: order.customer_name ?? "",
             customerEmail: order.customer_email ?? "",
             customerPhone: formatPhoneNumber(getCustomerPhone(order) ?? ""),
@@ -1425,8 +1491,9 @@ function OwnerOrdersView() {
                   {isEditingOrder ? (
                     <select
                       className="owner-orders-inline-select"
-                      value={draft.paymentStatus}
+                      value={includesDonation ? "paid" : draft.paymentStatus}
                       onChange={(event) => handleDraftChange(order.id, "paymentStatus", event.target.value)}
+                      disabled={includesDonation}
                     >
                       {PAYMENT_STATUS_OPTIONS.map((status) => (
                         <option key={status.value} value={status.value}>

@@ -45,21 +45,6 @@
   background: var(--color-background);
 }
 
-.memorial-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    90deg,
-    var(--color-background) 0%,
-    var(--color-background) 46%,
-    rgb(233 230 225 / 0.82) 49%,
-    rgb(233 230 225 / 0) 54%
-  );
-  pointer-events: none;
-}
-
 .memorial-hero__desktop-carousel {
   position: absolute;
   inset: 0 0 0 50%;
@@ -361,7 +346,6 @@
     min-height: auto;
   }
 
-  .memorial-hero::before,
   .memorial-hero__desktop-carousel {
     display: none;
   }
@@ -389,21 +373,6 @@
     aspect-ratio: 1.72;
     margin-block: 0.25rem 0.1rem;
     overflow: hidden;
-  }
-
-  .memorial-hero__mobile-carousel::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto;
-    z-index: 1;
-    height: 22%;
-    background: linear-gradient(
-      180deg,
-      var(--color-background) 0%,
-      rgb(233 230 225 / 0.56) 34%,
-      rgb(233 230 225 / 0) 100%
-    );
-    pointer-events: none;
   }
 
   .thank-you-hero {
