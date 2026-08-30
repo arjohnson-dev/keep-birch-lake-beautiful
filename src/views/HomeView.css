@@ -42,20 +42,35 @@
   margin-left: calc(50% - 50vw + 8.5px);
   min-height: clamp(34rem, 58vw, 45rem);
   overflow: hidden;
-  background:
-    linear-gradient(
-      90deg,
-      var(--color-background) 0%,
-      var(--color-background) 38%,
-      rgb(233 230 225 / 0.9) 46%,
-      rgb(233 230 225 / 0.42) 62%,
-      rgb(233 230 225 / 0.04) 76%
-    ),
-    url("/coach-bill-doba.jpg") right -22rem center / auto 100% no-repeat;
+  background: var(--color-background);
+}
+
+.memorial-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    var(--color-background) 0%,
+    var(--color-background) 46%,
+    rgb(233 230 225 / 0.82) 49%,
+    rgb(233 230 225 / 0) 54%
+  );
+  pointer-events: none;
+}
+
+.memorial-hero__desktop-carousel {
+  position: absolute;
+  inset: 0 0 0 50%;
+  z-index: 0;
+  overflow: hidden;
 }
 
 .memorial-hero__copy {
-  width: min(100%, 40rem);
+  position: relative;
+  z-index: 2;
+  width: min(100%, 36rem);
   min-width: 0;
   min-height: inherit;
   display: grid;
@@ -64,7 +79,7 @@
   gap: 1.15rem;
   padding:
     clamp(2rem, 5vw, 4.4rem)
-    max(clamp(1.5rem, 5vw, 4rem), calc((100vw - 72rem) / 2 + 2.25rem));
+    max(clamp(1.25rem, 3vw, 2.5rem), calc((100vw - 72rem) / 2 + 0.75rem));
   text-align: center;
 }
 
@@ -96,7 +111,7 @@
   gap: 0.08em;
   width: 100%;
   color: rgb(9 32 59);
-  font-size: clamp(4rem, 7.4vw, 7.25rem);
+  font-size: clamp(4rem, 6.8vw, 6.65rem);
   letter-spacing: 0;
 }
 
@@ -105,19 +120,35 @@
   white-space: nowrap;
 }
 
-.memorial-hero__mobile-photo-wrap {
+.memorial-hero__mobile-carousel {
   display: none;
 }
 
-.memorial-hero__mobile-photo {
-  display: block;
+.memorial-hero__slide {
+  position: absolute;
+  inset: 0;
   width: 100%;
+  max-width: none;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 1500ms ease;
+}
+
+.memorial-hero__slide.is-active {
+  opacity: 1;
+}
+
+.memorial-hero__mobile-carousel .memorial-hero__slide {
+  inset: 0;
+  right: auto;
+  width: 100%;
+  object-position: center;
 }
 
 .memorial-hero__lead {
-  width: min(100%, 36rem);
+  width: min(100%, 32rem);
   color: rgb(9 32 59);
   font-family: var(--font-title);
   font-size: clamp(1.65rem, 3vw, 2.45rem);
@@ -185,6 +216,31 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.coach-message {
+  width: min(100%, 56rem);
+  justify-self: center;
+  display: grid;
+  gap: 1.35rem;
+  margin-top: 3rem;
+  text-align: center;
+}
+
+.coach-message h2 {
+  color: rgb(9 32 59);
+  font-size: clamp(2.8rem, 6vw, 5rem);
+}
+
+.coach-message__copy {
+  display: grid;
+  gap: 1rem;
+}
+
+.coach-message__copy p {
+  color: rgb(9 32 59 / 0.86);
+  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  line-height: 1.65;
 }
 
 .thank-you-hero {
@@ -303,13 +359,11 @@
 
   .memorial-hero {
     min-height: auto;
-    background:
-      linear-gradient(
-        180deg,
-        var(--color-background) 0%,
-        var(--color-background) 72%,
-        rgb(233 230 225 / 0) 100%
-      );
+  }
+
+  .memorial-hero::before,
+  .memorial-hero__desktop-carousel {
+    display: none;
   }
 
   .memorial-hero__copy {
@@ -328,7 +382,7 @@
     text-align: center;
   }
 
-  .memorial-hero__mobile-photo-wrap {
+  .memorial-hero__mobile-carousel {
     position: relative;
     display: block;
     width: min(100%, 36rem);
@@ -337,7 +391,7 @@
     overflow: hidden;
   }
 
-  .memorial-hero__mobile-photo-wrap::before {
+  .memorial-hero__mobile-carousel::before {
     content: "";
     position: absolute;
     inset: 0 0 auto;
@@ -352,13 +406,13 @@
     pointer-events: none;
   }
 
-  .memorial-hero__mobile-photo {
-    object-position: center;
-  }
-
   .thank-you-hero {
     grid-template-columns: 1fr;
     gap: 2rem;
+  }
+
+  .coach-message {
+    margin-top: 2rem;
   }
 
   .thank-you-hero__copy {
@@ -413,14 +467,10 @@
     justify-self: center;
   }
 
-  .memorial-hero__mobile-photo-wrap {
+  .memorial-hero__mobile-carousel {
     width: calc(100vw - 2.5rem);
     max-width: none;
     aspect-ratio: 1.45;
-  }
-
-  .memorial-hero__mobile-photo {
-    object-position: center;
   }
 
   .memorial-hero__fund-note {
