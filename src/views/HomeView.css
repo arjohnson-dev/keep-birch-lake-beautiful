@@ -1,21 +1,218 @@
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 3rem;
+.hero__cta {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 1.1rem 1.7rem;
+  border-radius: 999px;
+  background: var(--color-button-primary);
+  color: var(--color-text);
+  font-family: inherit;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
 }
 
-.hero__copy {
+.hero__cta:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.hero__donation-error {
+  margin-top: -0.15rem;
+  color: var(--color-accent);
+  max-width: 34rem;
+  font-weight: 600;
+}
+
+.view--home {
+  width: 100%;
+  justify-self: center;
+  margin-top: -2.5rem;
+}
+
+.memorial-hero {
+  position: relative;
+  isolation: isolate;
+  width: calc(100vw - 17px);
+  margin-left: calc(50% - 50vw + 8.5px);
+  min-height: clamp(34rem, 58vw, 45rem);
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      var(--color-background) 0%,
+      var(--color-background) 38%,
+      rgb(233 230 225 / 0.9) 46%,
+      rgb(233 230 225 / 0.42) 62%,
+      rgb(233 230 225 / 0.04) 76%
+    ),
+    url("/coach-bill-doba.jpg") right -22rem center / auto 100% no-repeat;
+}
+
+.memorial-hero__copy {
+  width: min(100%, 40rem);
+  min-width: 0;
+  min-height: inherit;
   display: grid;
-  gap: 1.6rem;
+  align-content: center;
+  justify-items: center;
+  gap: 1.15rem;
+  padding:
+    clamp(2rem, 5vw, 4.4rem)
+    max(clamp(1.5rem, 5vw, 4rem), calc((100vw - 72rem) / 2 + 2.25rem));
+  text-align: center;
 }
 
-.hero__copy h1 {
+.memorial-hero__eyebrow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgb(9 32 59);
+  font-family: var(--font-title);
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  max-width: 100%;
+}
+
+.memorial-hero__eyebrow::before,
+.memorial-hero__eyebrow::after {
+  content: "";
+  width: clamp(2.5rem, 7vw, 6rem);
+  height: 1px;
+  background: rgb(169 138 76 / 0.78);
+}
+
+.memorial-hero h1 {
+  display: grid;
+  gap: 0.08em;
+  width: 100%;
+  color: rgb(9 32 59);
+  font-size: clamp(4rem, 7.4vw, 7.25rem);
+  letter-spacing: 0;
+}
+
+.memorial-hero h1 span {
+  display: block;
+  white-space: nowrap;
+}
+
+.memorial-hero__mobile-photo-wrap {
+  display: none;
+}
+
+.memorial-hero__mobile-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.memorial-hero__lead {
+  width: min(100%, 36rem);
+  color: rgb(9 32 59);
+  font-family: var(--font-title);
+  font-size: clamp(1.65rem, 3vw, 2.45rem);
+  font-weight: 600;
+  line-height: 1.08;
+}
+
+.memorial-hero__donate {
+  margin-top: 0.35rem;
+  min-width: min(100%, 18rem);
+  min-height: 4.2rem;
+  padding: 1.25rem 2.8rem;
+  background: rgb(9 32 59);
+  color: var(--color-background);
+  font-size: clamp(1.05rem, 2.1vw, 1.35rem);
+  letter-spacing: 0.16em;
+}
+
+.memorial-hero__fund-note {
+  width: min(100%, 36rem);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.45rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(169 138 76 / 0.65);
+  text-align: left;
+  min-width: 0;
+}
+
+.memorial-hero__fund-note p {
+  min-width: 0;
+  color: rgb(9 32 59);
+  font-family: var(--font-title);
+  font-size: clamp(1.2rem, 2.1vw, 1.55rem);
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+.memorial-hero__fund-note strong {
+  text-transform: uppercase;
+}
+
+.memorial-hero__fund-mark {
+  width: 4.2rem;
+  aspect-ratio: 1;
+  border: 1px solid rgb(169 138 76 / 0.78);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: rgb(9 32 59);
+  font-size: 2.45rem;
+}
+
+.memorial-hero__fund-mark svg {
+  width: 1em;
+  height: 1em;
+}
+
+.memorial-hero__shop-link {
+  margin-top: 0.2rem;
+  color: rgb(9 32 59 / 0.82);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.thank-you-hero {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
+  gap: 2.5rem;
+  align-items: start;
+  margin-top: 3rem;
+}
+
+.thank-you-hero__copy {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  gap: 1.6rem;
+  max-width: 34rem;
+  margin-left: auto;
+  padding-top: 0.4rem;
+  text-align: right;
+}
+
+.thank-you-hero__copy h2 {
   font-size: clamp(4.25rem, 10vw, 7.25rem);
 }
 
-.hero__copy .eyebrow {
-  margin-bottom: -0.25rem;
+.thank-you-hero__cta {
+  justify-self: end;
+  margin-top: 0.35rem;
 }
 
 .hero__carousel {
@@ -25,7 +222,7 @@
 
 .hero__slides {
   position: relative;
-  min-height: clamp(24rem, 52vw, 40rem);
+  min-height: clamp(34rem, 58vw, 48rem);
   border: 1px solid var(--color-border);
   border-radius: 2rem;
   overflow: hidden;
@@ -52,81 +249,8 @@
   display: block;
 }
 
-.hero__cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  padding: 1.1rem 1.7rem;
-  border-radius: 999px;
-  background: var(--color-button-primary);
-  color: var(--color-text);
-  font-family: inherit;
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.hero__cta--copy {
-  justify-self: end;
-  margin-top: 0.35rem;
-}
-
-.hero__cta-group {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-top: 0.35rem;
-}
-
-.hero__cta-group .hero__cta--copy {
-  margin-top: 0;
-}
-
-.hero__cta:disabled {
-  opacity: 0.75;
-  cursor: not-allowed;
-}
-
-.hero__donation-error {
-  margin-top: 0.55rem;
-  color: var(--color-accent);
-  max-width: 26rem;
-  justify-self: end;
-  text-align: right;
-}
-
-.view--home {
-  width: min(100%, 82rem);
-  justify-self: center;
-}
-
-.view--home .hero {
-  grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
-  gap: 2.5rem;
-  align-items: start;
-}
-
-.view--home .hero__slides {
-  min-height: clamp(34rem, 58vw, 48rem);
-}
-
-.view--home .hero__copy {
-  align-content: start;
-  justify-items: end;
-  text-align: right;
-  max-width: 34rem;
-  margin-left: auto;
-  padding-top: 0.4rem;
-}
-
 .instagram-section {
-  margin-top: 1.5rem;
+  margin-top: 0.25rem;
   display: grid;
   gap: 0.8rem;
 }
@@ -172,45 +296,159 @@
 }
 
 @media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-
-  .hero__slides {
-    min-height: 22rem;
-  }
-
   .view--home {
     width: 100%;
+    margin-top: -1.75rem;
   }
 
-  .view--home .hero {
+  .memorial-hero {
+    min-height: auto;
+    background:
+      linear-gradient(
+        180deg,
+        var(--color-background) 0%,
+        var(--color-background) 72%,
+        rgb(233 230 225 / 0) 100%
+      );
+  }
+
+  .memorial-hero__copy {
+    width: 100%;
+    min-height: auto;
+    align-content: start;
+    justify-items: center;
+    padding-block: 2rem 2.5rem;
+    padding-inline: 1.25rem;
+    text-align: center;
+  }
+
+  .memorial-hero__fund-note {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .memorial-hero__mobile-photo-wrap {
+    position: relative;
+    display: block;
+    width: min(100%, 36rem);
+    aspect-ratio: 1.72;
+    margin-block: 0.25rem 0.1rem;
+    overflow: hidden;
+  }
+
+  .memorial-hero__mobile-photo-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 1;
+    height: 22%;
+    background: linear-gradient(
+      180deg,
+      var(--color-background) 0%,
+      rgb(233 230 225 / 0.56) 34%,
+      rgb(233 230 225 / 0) 100%
+    );
+    pointer-events: none;
+  }
+
+  .memorial-hero__mobile-photo {
+    object-position: center;
+  }
+
+  .thank-you-hero {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
 
-  .view--home .hero__slides {
-    min-height: 30rem;
-  }
-
-  .view--home .hero__copy {
+  .thank-you-hero__copy {
     max-width: none;
     margin-left: 0;
     justify-items: start;
     text-align: left;
   }
 
-  .hero__cta--copy {
+  .thank-you-hero__cta {
     justify-self: start;
   }
 
-  .hero__cta-group {
-    justify-content: flex-start;
+  .hero__slides {
+    min-height: 30rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .memorial-hero__copy > * {
+    max-width: calc(100vw - 5rem);
   }
 
-  .hero__donation-error {
-    justify-self: start;
-    text-align: left;
+  .memorial-hero {
+    width: calc(100% + 2.5rem);
+    margin-left: -1.25rem;
+    background: var(--color-background);
+  }
+
+  .memorial-hero__eyebrow {
+    gap: 0.55rem;
+    letter-spacing: 0.18em;
+  }
+
+  .memorial-hero__eyebrow::before,
+  .memorial-hero__eyebrow::after {
+    width: clamp(1.5rem, 10vw, 3rem);
+  }
+
+  .memorial-hero h1 {
+    width: min(calc(100vw - 5rem), 17.25rem);
+    font-size: clamp(2.55rem, 11vw, 3rem);
+  }
+
+  .memorial-hero__lead {
+    width: min(calc(100vw - 5rem), 17.25rem);
+    font-size: clamp(1.16rem, 5vw, 1.36rem);
+    overflow-wrap: anywhere;
+  }
+
+  .memorial-hero__copy > * {
+    justify-self: center;
+  }
+
+  .memorial-hero__mobile-photo-wrap {
+    width: calc(100vw - 2.5rem);
+    max-width: none;
+    aspect-ratio: 1.45;
+  }
+
+  .memorial-hero__mobile-photo {
+    object-position: center;
+  }
+
+  .memorial-hero__fund-note {
+    width: min(calc(100vw - 5rem), 17.25rem);
+  }
+
+  .memorial-hero__fund-note p,
+  .memorial-hero__shop-link {
+    overflow-wrap: anywhere;
+  }
+
+  .memorial-hero__donate {
+    width: min(calc(100vw - 5rem), 15.5rem);
+    min-width: 0;
+    min-height: 3.85rem;
+    padding-inline: 1.7rem;
+  }
+
+  .thank-you-hero {
+    margin-top: 2rem;
+  }
+
+  .thank-you-hero__copy h2 {
+    font-size: clamp(3.6rem, 18vw, 5.25rem);
+  }
+
+  .hero__slides {
+    min-height: 22rem;
+    border-radius: 1.2rem;
   }
 }
