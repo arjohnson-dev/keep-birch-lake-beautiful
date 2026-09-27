@@ -3,7 +3,8 @@
   align-items: center;
   justify-content: center;
   border: 0;
-  padding: 1.1rem 1.7rem;
+  min-height: 3.75rem;
+  padding: 0.75rem 1.2rem;
   border-radius: 999px;
   background: var(--color-button-primary);
   color: var(--color-text);
@@ -11,7 +12,7 @@
   text-decoration: none;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 0.95rem;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
@@ -29,21 +30,23 @@
 }
 
 .thank-you-hero {
+  --thank-you-visual-height: clamp(34rem, 58vw, 48rem);
+
   display: grid;
   grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
   gap: 2.5rem;
-  align-items: start;
+  align-items: stretch;
   margin-top: 3rem;
 }
 
 .thank-you-hero__copy {
-  display: grid;
-  align-content: start;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 1.6rem;
   max-width: 34rem;
+  min-height: var(--thank-you-visual-height);
   margin-left: auto;
-  padding-top: 0.4rem;
   text-align: right;
 }
 
@@ -51,9 +54,22 @@
   font-size: clamp(4.25rem, 10vw, 7.25rem);
 }
 
+.thank-you-hero__camp-photo {
+  width: min(100%, 24rem);
+  aspect-ratio: 4 / 3;
+  margin-top: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 1.2rem;
+  display: block;
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
+}
+
 .thank-you-hero__cta {
-  justify-self: end;
-  margin-top: 0.35rem;
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(100%, 20.75rem);
+  margin-top: 0;
 }
 
 .hero__carousel {
@@ -63,7 +79,7 @@
 
 .hero__slides {
   position: relative;
-  min-height: clamp(34rem, 58vw, 48rem);
+  min-height: var(--thank-you-visual-height);
   border: 1px solid var(--color-border);
   border-radius: 2rem;
   overflow: hidden;
@@ -103,11 +119,12 @@
 }
 
 .instagram-section__button {
-  justify-self: start;
+  justify-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
+  width: min(100%, 20.75rem);
+  min-height: 3.75rem;
   border-radius: 999px;
   background: var(--color-button-primary);
   color: var(--color-text);
@@ -149,13 +166,18 @@
 
   .thank-you-hero__copy {
     max-width: none;
+    min-height: 0;
     margin-left: 0;
-    justify-items: start;
+    align-items: flex-start;
     text-align: left;
   }
 
+  .thank-you-hero__camp-photo {
+    width: min(100%, 28rem);
+  }
+
   .thank-you-hero__cta {
-    justify-self: start;
+    justify-self: center;
   }
 
   .hero__slides {

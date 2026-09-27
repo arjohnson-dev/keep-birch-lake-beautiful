@@ -27,7 +27,7 @@ const SHOP_IMAGE_FILENAMES = [
 
 function toTitle(value) {
   return value
-    .replace(/_/g, " ")
+    .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (character) => character.toUpperCase())
     .replace("Tshirt", "T-Shirt");
 }
