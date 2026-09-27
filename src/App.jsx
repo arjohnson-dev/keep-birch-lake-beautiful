@@ -5,6 +5,7 @@ import Header from "./components/Header.jsx";
 import CartDrawer from "./components/shop/CartDrawer.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import AboutView from "./views/AboutView.jsx";
+import CoachBillDobaDonationView from "./views/CoachBillDobaDonationView.jsx";
 import ContactView from "./views/ContactView.jsx";
 import ShopCartView from "./views/ShopCartView.jsx";
 import HomeView from "./views/HomeView.jsx";
@@ -18,6 +19,7 @@ import ThankYouView from "./views/ThankYouView.jsx";
 const routes = {
   "/": HomeView,
   "/about": AboutView,
+  "/coach-bill-doba-donation": CoachBillDobaDonationView,
   "/shop": ShopView,
   "/shop/cart": ShopCartView,
   "/contact": ContactView,

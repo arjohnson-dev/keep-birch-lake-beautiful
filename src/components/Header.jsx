@@ -7,6 +7,7 @@ import "./Header.css";
 
 const navigationItems = [
   { href: "/", label: "Home" },
+  { href: "/coach-bill-doba-donation", label: "Coach 'Bill' Doba Donation" },
   { href: "/shop", label: "Shop" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
