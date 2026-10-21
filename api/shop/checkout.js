@@ -60,7 +60,10 @@ function getInlineShippingRate(
   };
 }
 
-function getShippingOptions() {
+export function getShippingOptions(items = []) {
+  const physicalItems = items.filter((item) => item.lookupKey !== "donation");
+  const ornamentOnly = physicalItems.length > 0 &&
+    physicalItems.every((item) => item.lookupKey === "ornament");
   const currency = getShippingCurrency();
   const manualShippingLabel =
     process.env.STRIPE_SHIPPING_LABEL?.trim() || "Ship order";
@@ -70,7 +73,9 @@ function getShippingOptions() {
     "Local drop-off (Birch Lake area only)";
   const localDropoffRateId = process.env.STRIPE_LOCAL_DROPOFF_RATE_ID?.trim();
 
-  const manualShippingOption = manualShippingRateId
+  const manualShippingOption = ornamentOnly
+    ? getInlineShippingRate(manualShippingLabel, 1000, currency, "manual_shipping")
+    : manualShippingRateId
     ? { shipping_rate: manualShippingRateId }
     : getInlineShippingRate(
         manualShippingLabel,
@@ -155,7 +160,7 @@ export default async function handler(req, res) {
         : {
             allowed_countries: allowedShippingCountries,
           },
-      shipping_options: donationOnlyCheckout ? undefined : getShippingOptions(),
+      shipping_options: donationOnlyCheckout ? undefined : getShippingOptions(merged.items),
       custom_text: donationOnlyCheckout
         ? undefined
         : {
