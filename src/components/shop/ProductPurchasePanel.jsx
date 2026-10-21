@@ -22,6 +22,7 @@ function ProductPurchasePanel({ product, onAdded }) {
   const selectedItem = hasSizes
     ? product.sizeItems[selectedSize] ?? null
     : product.baseItem;
+  const maxQuantity = Math.min(MAX_QUANTITY, selectedItem?.availableQuantity ?? MAX_QUANTITY);
   const isSoldOut = !selectedItem || !selectedItem.inStock;
 
   const handleAddToCart = () => {
@@ -60,7 +61,7 @@ function ProductPurchasePanel({ product, onAdded }) {
   const handleQuantityChange = (nextValue) => {
     const normalized = Math.max(
       MIN_QUANTITY,
-      Math.min(MAX_QUANTITY, Math.floor(Number(nextValue) || MIN_QUANTITY)),
+      Math.min(Math.max(1, maxQuantity), Math.floor(Number(nextValue) || MIN_QUANTITY)),
     );
     setQuantity(normalized);
   };
@@ -80,6 +81,7 @@ function ProductPurchasePanel({ product, onAdded }) {
         </label>
       ) : null}
 
+      {selectedItem?.availableQuantity > 0 ? <p>{selectedItem.availableQuantity} available</p> : null}
       <label className="shop-product-card__field" htmlFor={`qty-${product.key}`}>
         <span>Quantity</span>
         <div className="shop-quantity-input">
@@ -97,7 +99,7 @@ function ProductPurchasePanel({ product, onAdded }) {
             type="number"
             inputMode="numeric"
             min={MIN_QUANTITY}
-            max={MAX_QUANTITY}
+            max={maxQuantity}
             value={quantity}
             onChange={(event) => handleQuantityChange(event.target.value)}
             disabled={isSoldOut}

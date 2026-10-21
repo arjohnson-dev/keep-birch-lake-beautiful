@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { getOrnamentAvailability } from "./inventory.js";
 
 const ALLOWED_GARMENTS = new Set(["tshirt", "crewneck", "hooded", "print"]);
 const ALLOWED_SIZES = new Set(["s", "m", "l", "xl", "xxl", "xxxl"]);
@@ -37,6 +38,10 @@ function chunk(items, size) {
 }
 
 function parseLookupKey(lookupKey) {
+  if (lookupKey === "ornament") {
+    return { category: "home_goods", garment: "ornament", design: "ornament", size: null };
+  }
+
   if (lookupKey === DONATION_LOOKUP_KEY) {
     return {
       category: "donation",
@@ -129,6 +134,7 @@ function parseInStockValue(value) {
 
 function readInStockMetadata(price, product) {
   if (
+    price?.lookup_key === "ornament" ||
     price?.lookup_key === DONATION_LOOKUP_KEY ||
     product?.id === DONATION_PRODUCT_ID
   ) {
@@ -203,6 +209,15 @@ function sortCatalogItems(items) {
 }
 
 async function listNormalizedCatalog() {
+  const items = await listStripeCatalog();
+  if (!items.some((item) => item.lookupKey === "ornament")) return items;
+  const availableQuantity = await getOrnamentAvailability(getStripeClient());
+  return items.map((item) => item.lookupKey === "ornament"
+    ? { ...item, availableQuantity, inStock: availableQuantity > 0 }
+    : item);
+}
+
+async function listStripeCatalog() {
   if (cachedCatalog && Date.now() - cachedCatalogAt < CATALOG_CACHE_TTL_MS) {
     return cachedCatalog;
   }
