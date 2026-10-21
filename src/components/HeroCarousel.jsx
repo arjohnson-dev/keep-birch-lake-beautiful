@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 const MAX_SLIDES = 8;
-const FEATURED_HERO_IMAGE = "towels.jpg";
+const FEATURED_HERO_IMAGE = "ornament.jpg";
 const SHOP_IMAGE_FILENAMES = [
   FEATURED_HERO_IMAGE,
   "ducks.jpg",

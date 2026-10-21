@@ -1,3 +1,4 @@
+import { getOrnamentAvailability, reserveOrnaments } from "./lib/inventory.js";
 import {
   getBaseUrl,
   getStripeClient,
@@ -135,6 +136,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: resolved.error });
     }
 
+    const ornamentQuantity = merged.items.find((item) => item.lookupKey === "ornament")?.quantity ?? 0;
+    if (ornamentQuantity) {
+      const available = await getOrnamentAvailability(stripe);
+      if (ornamentQuantity > available) {
+        return res.status(409).json({ error: available === 0
+          ? "Ornament is out of stock."
+          : `Only ${available} ornaments are available. Please update your cart.` });
+      }
+    }
+
     const baseUrl = getBaseUrl(req);
     const clientReferenceId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     const allowedShippingCountries = getAllowedShippingCountries();
@@ -145,6 +156,10 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      ...(ornamentQuantity ? {
+        expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+        payment_method_types: ["card"],
+      } : {}),
       line_items: resolved.lineItems,
       success_url: `${baseUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
@@ -170,6 +185,21 @@ export default async function handler(req, res) {
             },
           },
     });
+
+    if (ornamentQuantity) {
+      // Never expose a payable URL until the database has atomically reserved stock.
+      let reserved;
+      try {
+        reserved = await reserveOrnaments(session.id, ornamentQuantity);
+      } catch (error) {
+        await stripe.checkout.sessions.expire(session.id);
+        throw error;
+      }
+      if (!reserved) {
+        await stripe.checkout.sessions.expire(session.id);
+        return res.status(409).json({ error: "There are not enough ornaments left for this order. Please update your cart." });
+      }
+    }
 
     return res.status(200).json({
       url: session.url,

@@ -45,6 +45,8 @@ function getImageCandidatesForStem(stem) {
 }
 
 function getImageCandidates({ garment, design, category }) {
+  if (garment === "ornament") return getImageCandidatesForStem("ornament");
+
   if (category === "print") {
     const stems = [`${design}_print`, design];
     return stems.flatMap((stem) => getImageCandidatesForStem(stem));

@@ -48,12 +48,16 @@
 }
 
 .shop-product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
 }
 
 .shop-product-card {
+  flex: 0 1 calc((100% - 2rem) / 3);
+  min-width: 16rem;
+  max-width: 100%;
   border: 1px solid var(--color-border);
   border-radius: 1.2rem;
   overflow: hidden;
@@ -551,6 +555,13 @@
   cursor: pointer;
 }
 
+@media (min-width: 641px) {
+  .shop-card-section > h3,
+  .shop-garment-block > h4 {
+    text-align: center;
+  }
+}
+
 @media (max-width: 900px) {
   .shop-product-detail,
   .shop-cart-layout {
@@ -569,6 +580,8 @@
 
   .shop-product-grid {
     display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     gap: 0.85rem;
     overflow-x: auto;
     overflow-y: visible;
@@ -589,6 +602,11 @@
 
   .shop-product-card {
     flex: 0 0 min(80vw, 18.5rem);
+    min-width: 0;
     scroll-snap-align: center;
+  }
+
+  .shop-product-grid:has(> .shop-product-card:only-child) {
+    justify-content: center;
   }
 }
