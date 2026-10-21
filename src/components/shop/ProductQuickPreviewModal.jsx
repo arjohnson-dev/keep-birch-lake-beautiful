@@ -27,7 +27,9 @@ function ProductQuickPreviewModal({ product, onClose, onAdded }) {
     return null;
   }
 
-  const title = `${humanizeToken(product.design)} ${humanizeToken(product.garment)}`;
+  const title = product.garment === "ornament"
+    ? product.name
+    : `${humanizeToken(product.design)} ${humanizeToken(product.garment)}`;
   const priceLabel = getPriceLabel(product);
 
   return (

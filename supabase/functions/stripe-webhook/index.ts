@@ -41,6 +41,10 @@ function requireEnv(name: (typeof REQUIRED_ENV_VARS)[number]): string {
 }
 
 function parseLookupKey(lookupKey: string) {
+  if (lookupKey === "ornament") {
+    return { category: "home_goods", garment: "ornament", design: "ornament", size: null };
+  }
+
   if (lookupKey === "donation") {
     return {
       category: "donation",

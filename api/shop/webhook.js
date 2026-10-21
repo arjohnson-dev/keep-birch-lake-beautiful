@@ -55,6 +55,10 @@ function parseLookupKey(lookupKey) {
     return null;
   }
 
+  if (lookupKey === "ornament") {
+    return { category: "home_goods", garment: "ornament", design: "ornament", size: null };
+  }
+
   if (lookupKey === "donation") {
     return {
       category: "donation",

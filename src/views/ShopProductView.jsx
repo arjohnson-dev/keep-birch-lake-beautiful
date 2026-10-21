@@ -70,7 +70,7 @@ function ShopProductView({ category, garment, design }) {
   );
 
   const title = product
-    ? `${humanizeToken(product.design)} ${humanizeToken(product.garment)}`
+    ? (product.garment === "ornament" ? product.name : `${humanizeToken(product.design)} ${humanizeToken(product.garment)}`)
     : "Product";
 
   return (
